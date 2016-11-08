@@ -6,7 +6,7 @@ import random
 
 class Simulator:
     def __init__(self, protocol, CarClass):
-        self.num_cars = 10
+        self.num_cars = 50
         self.num_rounds = 5
         self.total_cost = 0
         self.protocol = protocol
@@ -215,8 +215,20 @@ class State:
 
     def printState(self, round_id, iteration_id):
         print('State: round=%d\titeration=%d' % (round_id, iteration_id))
+        print('  ', end='')
         for x in xrange(self.width):
-            for y in xrange(self.height):
+            if x % 4 == 3:
+                print('n ', end='')
+            else:
+                print('  ', end='')
+        print('')
+        for y in xrange(self.height):
+            if y % 4 == 3:
+                print('<-', end='')
+            else:
+                print('  ', end='')
+
+            for x in xrange(self.width):
                 count = self.board[x][y]
                 if x % 2 == 0 and y % 2 == 0:
                     count_string = ' '
@@ -225,4 +237,16 @@ class State:
                 else:
                     count_string = str(count)
                 print('%s ' % count_string, end='')
+
+            if y % 4 == 1:
+                print('->', end='')
+            else:
+                print('  ', end='')
             print('')
+
+        print('  ', end='')
+        for x in xrange(self.width):
+            if x % 4 == 1:
+                print('v ', end='')
+            else:
+                print('  ', end='')
