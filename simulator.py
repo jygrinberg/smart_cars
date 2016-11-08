@@ -50,8 +50,8 @@ class State:
         self.protocol = protocol
 
         # Initialize the board, which stores the number of cars at each (x,y) position.
-        self.width = 9
-        self.height = 9
+        self.width = 21
+        self.height = 21
         self.board = [[0] * self.height for _ in xrange(self.width)]
 
         # Initialize a trip for each car. Add each car to the board.
@@ -218,7 +218,9 @@ class State:
         for x in xrange(self.width):
             for y in xrange(self.height):
                 count = self.board[x][y]
-                if count == 0:
+                if x % 2 == 0 and y % 2 == 0:
+                    count_string = ' '
+                elif count == 0:
                     count_string = '.'
                 else:
                     count_string = str(count)
