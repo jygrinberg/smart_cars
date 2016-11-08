@@ -250,3 +250,4 @@ class State:
                 print('v ', end='')
             else:
                 print('  ', end='')
+        print('')

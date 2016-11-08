@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import random
 
 
 class Protocol(object):
@@ -7,11 +8,12 @@ class Protocol(object):
     @abstractmethod
     def getWinLosePositions(self, votes):
         """
-        Identifies the 'winning' position in a conflict (the first car in the winning position is the one that gets to
-        proceed into the intersection).
+        Identifies the 'winning' position in the conflict (the first car in the winning position is the one that gets to
+        proceed into the intersection), and the 'losing' position in the conflict (the cars in the losing position do
+        not move).
         :param votes: Dictionary storing the actions of all the cars in the conflict. Key is one of the current
         positions at which cars in the conflict are currently queued. Value is a list. The value at index i in the list
-        corresponds to the number of cars that voted action i.
+        corresponds to the number of cars in the given position that voted action i.
         :return: Winning position (x,y), losing position  (x,y)
         """
         pass
@@ -24,7 +26,7 @@ class Protocol(object):
         :param win_position: Position that won the conflict.
         :param votes: Dictionary storing the actions of all the cars in the conflict. Key is one of the current
         positions at which cars in the conflict are currently queued. Value is a list. The value at index i in the list
-        corresponds to the number of cars that voted action i.
+        corresponds to the number of cars in the given position that voted action i.
         :return: Reward value (>= 0).
         """
         pass
@@ -48,4 +50,5 @@ class RandomProtocol(Protocol):
         return win_position, lose_position
 
     def computeCarReward(self, position, win_position, votes):
-        return 0
+        # Arbitrarily pick a reward.
+        return random.randint(0, 1)
