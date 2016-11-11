@@ -42,6 +42,8 @@ class Protocol(object):
             return self.rewards[car_id]
         return 0.0
 
+    def getTotalReward(self):
+        return sum([reward for car_id, reward in self.rewards.iteritems()])
 
 class RandomProtocol(Protocol):
     """
@@ -87,7 +89,7 @@ class VCGProtocol(Protocol):
         bid_difference = abs(position_0_bids - position_1_bids)
 
         reward = 0.0
-        if position is win_position and car_action == 1:
+        if position == win_position and car_action == 1:
             # Car in winning position and car's action is 1.
             if bid_difference == 0:
                 # Car would have lost had it acted differently.
@@ -95,7 +97,7 @@ class VCGProtocol(Protocol):
             elif bid_difference == 1:
                 # Car would have tied had it acted differently.
                 reward = -0.5
-        elif position is not win_position and car_action == 0:
+        elif position != win_position and car_action == 0:
             # Car in losing position and car's action is 0.
             if bid_difference == 0:
                 # Car would have won had it acted differently.

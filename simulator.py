@@ -34,12 +34,16 @@ class Simulator:
             while not game.isEnd():
                 game.updateState()
                 iteration_id += 1
+                if iteration_id > 2000:
+                    print('Here')
                 game.printState(round_id, iteration_id)
 
             # Update the total cost.
             self.total_cost += game.getTotalCost()
             game.printState(round_id, iteration_id)
-            print('TOTAL COST: %d' % self.total_cost)
+            print('Round %d\tTotal reward = %f\tTotal cost = %d' % (round_id, self.protocol.getTotalReward(),
+                                                                    self.total_cost))
+        print('TOTAL COST: %d' % self.total_cost)
 
     def getTotalCost(self):
         return self.total_cost
@@ -117,7 +121,7 @@ class State:
             # the given position.
             num_cars = [0, 0]
             for car in cars:
-                if car.position is position_0:
+                if car.position == position_0:
                     num_cars[0] += 1
                 else:
                     num_cars[1] += 1
@@ -129,7 +133,7 @@ class State:
             for car in cars:
                 action = car.getAction(position_0, num_cars[0], position_1, num_cars[1])
                 actions[car.car_id] = action
-                if car.position is position_0:
+                if car.position == position_0:
                     actions_list[0].append(action)
                 else:
                     actions_list[1].append(action)
@@ -231,41 +235,42 @@ class State:
 
         return origin, destination, route
 
-    def printState(self, round_id, iteration_id):
-        print('State: round=%d\titeration=%d' % (round_id, iteration_id))
-        print('  ', end='')
-        for x in xrange(self.width):
-            if x % 4 == 3:
-                print('n ', end='')
-            else:
-                print('  ', end='')
-        print('')
-        for y in xrange(self.height):
-            if y % 4 == 3:
-                print('<-', end='')
-            else:
-                print('  ', end='')
-
+    def printState(self, round_id, iteration_id, print_states=False):
+        if print_states:
+            print('State: round=%d\titeration=%d' % (round_id, iteration_id))
+            print('  ', end='')
             for x in xrange(self.width):
-                count = self.board[x][y]
-                if x % 2 == 0 and y % 2 == 0:
-                    count_string = ' '
-                elif count == 0:
-                    count_string = '.'
+                if x % 4 == 3:
+                    print('n ', end='')
                 else:
-                    count_string = str(count)
-                print('%s ' % count_string, end='')
-
-            if y % 4 == 1:
-                print('->', end='')
-            else:
-                print('  ', end='')
+                    print('  ', end='')
             print('')
+            for y in xrange(self.height):
+                if y % 4 == 3:
+                    print('<-', end='')
+                else:
+                    print('  ', end='')
 
-        print('  ', end='')
-        for x in xrange(self.width):
-            if x % 4 == 1:
-                print('v ', end='')
-            else:
-                print('  ', end='')
-        print('')
+                for x in xrange(self.width):
+                    count = self.board[x][y]
+                    if x % 2 == 0 and y % 2 == 0:
+                        count_string = ' '
+                    elif count == 0:
+                        count_string = '.'
+                    else:
+                        count_string = str(count)
+                    print('%s ' % count_string, end='')
+
+                if y % 4 == 1:
+                    print('->', end='')
+                else:
+                    print('  ', end='')
+                print('')
+
+            print('  ', end='')
+            for x in xrange(self.width):
+                if x % 4 == 1:
+                    print('v ', end='')
+                else:
+                    print('  ', end='')
+            print('')

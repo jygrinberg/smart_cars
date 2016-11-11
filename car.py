@@ -44,7 +44,7 @@ class Car:
             return (self.position[0] + 1, self.position[1])
 
     def updatePosition(self, position):
-        if position is not self.position:
+        if position != self.position:
             # Decrement the current direction by 1.
             self.route[0][1] -= 1
             if self.route[0][1] == 0:
