@@ -2,26 +2,31 @@ from __future__ import print_function
 from car import *
 from protocol import *
 import random
-
+import time
 
 class Simulator:
-    def __init__(self, protocol, CarClass):
-        self.num_cars = 50
-        self.num_rounds = 5
-        self.total_cost = 0
+    def __init__(self, protocol, CarClass, num_cars, num_rounds, num_roads, random_seed=None):
         self.protocol = protocol
+        self.num_cars = num_cars
+        self.num_rounds = num_rounds
+        self.num_roads = num_roads
+        self.total_cost = 0
+
+        # Set a global random seed, if specified.
+        if random_seed is not None:
+            random.seed(random_seed)
 
         # Initialize the cars.
         self.cars = []
         for car_id in xrange(self.num_cars):
-            car = CarClass(car_id)
+            car = CarClass(car_id, self.protocol)
             self.cars.append(car)
 
     def run(self):
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
             # Initialize the state.
-            game = State(self.cars, self.protocol)
+            game = State(self.cars, self.protocol, self.num_roads)
             game.printState(round_id, 0)
 
             # Simulate the round until all cars reach their destination.
@@ -46,12 +51,12 @@ class State:
     Street ids 3, 7, 11, etc. go up/left.
     """
 
-    def __init__(self, cars, protocol):
+    def __init__(self, cars, protocol, num_roads):
         self.protocol = protocol
 
         # Initialize the board, which stores the number of cars at each (x,y) position.
-        self.width = 21
-        self.height = 21
+        self.width = num_roads * 4 + 1
+        self.height = num_roads * 4 + 1
         self.board = [[0] * self.height for _ in xrange(self.width)]
 
         # Initialize a trip for each car. Add each car to the board.
@@ -98,28 +103,40 @@ class State:
         win_positions = set()
         lose_positions = set()
         for next_position, cars in next_positions.iteritems():
-            # Compute the information given to each car when asking it for a decision. car_state is a dictionary. Key is
-            # the position of cars participating in the conflict. Value is number of cars at the given position.
-            car_state = {}
+            position_0 = None
+            position_1 = None
             for car in cars:
-                if car.position not in car_state:
-                    car_state[car.position] = 0
-                car_state[car.position] += 1
+                if position_0 is None:
+                    position_0 = car.position
+                    continue
+                elif car.position != position_0:
+                    position_1 = car.position
+                    break
+
+            # Compute the information given to each car when asking it for a decision. num_cars is number of cars at
+            # the given position.
+            num_cars = [0, 0]
+            for car in cars:
+                if car.position is position_0:
+                    num_cars[0] += 1
+                else:
+                    num_cars[1] += 1
 
             # Get each car's action (i.e. move forward, if possible, or agree not to move). Actions maps car_id to that
-            # car's action. Votes maps from current position to a list whose value at index i corresponds to the number
-            # of cars in this position with action i.
+            # car's action. actions_list is a list of votes at each position.
             actions = {}
-            votes = {}
+            actions_list = [[], []]
             for car in cars:
-                action = car.getAction(car_state)
+                action = car.getAction(position_0, num_cars[0], position_1, num_cars[1])
                 actions[car.car_id] = action
-                if car.position not in votes:
-                    votes[car.position] = [0, 0]
-                votes[car.position][action] += 1
+                if car.position is position_0:
+                    actions_list[0].append(action)
+                else:
+                    actions_list[1].append(action)
 
             # Determine which position wins.
-            win_position, lose_position = self.protocol.getWinLosePositions(votes)
+            win_position, lose_position = self.protocol.getWinLosePositions(position_0, actions_list[0], position_1,
+                                                                            actions_list[1])
 
             # Store the win and lose positions.
             win_positions.add(win_position)
@@ -128,7 +145,8 @@ class State:
             
             # Reward cars.
             for car in cars:
-                car.reward(self.protocol.computeCarReward(car.position, win_position, votes))
+                self.protocol.updateCarReward(car.car_id, car.position, win_position, actions[car.car_id], position_0,
+                                              actions_list[0], position_1, actions_list[1])
 
         # Update the car ranks. moving_cars maps next_positions to cars that will move.
         moving_cars = {}

@@ -5,22 +5,22 @@ from abc import ABCMeta, abstractmethod
 class Car:
     __metaclass__ = ABCMeta
     @abstractmethod
-    def getAction(self, car_state):
+    def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
         """
         Determines the car's action at each time step.
-        :param car_state: Dictionary storing the information provided in order to pick an action. Key is the position of
-        cars participating in a conflict with this car. Value is number of cars at the given position.
+        TODO
         :return: Action value.
         """
         pass
 
-    def __init__(self, car_id):
+    def __init__(self, car_id, protocol):
         self.car_id = car_id
         self.priority = None
         self.position = None
         self.rank = None
         self.route = None
         self.destination = None
+        self.protocol = protocol
 
     def initTrip(self, origin, rank, route, destination):
         self.position = origin
@@ -54,13 +54,18 @@ class Car:
         # Update the position.
         self.position = position
 
-    def reward(self, reward):
-        pass
-
     def hasArrived(self):
         return self.position == self.destination
 
 
 class RandomCar(Car):
-    def getAction(self, car_state):
+    def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
+        if self.protocol.getCarReward(self.car_id) > 0:
+            return random.choice([0, 1])
+        return 0
+
+class TruthfulCar(Car):
+    def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
+        if self.protocol.getCarReward(self.car_id) > 0:
+            return self.priority
         return 0
