@@ -78,6 +78,15 @@ class VCGProtocol(Protocol):
     """
     This is a protocol making use of a VCG auction.
     """
+    def __init__(self, voting_externality=True):
+        '''
+        :param voting_externality: Set to True to compute externality as the social welfare to everyone else if a given
+        agent were present but voted differently. Set to False to compute externality as the social welfare to everyone
+        had a given agent not been present.
+        '''
+        super(Protocol, self).__init__()
+        self.voting_externality = voting_externality
+
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         # Total bid is the sum of actions (each action is 0 or 1) plus the number of bidders (because cost per car is
         # 1 or 2).
@@ -99,40 +108,43 @@ class VCGProtocol(Protocol):
         bid_difference = abs(position_0_bids - position_1_bids)
 
         reward = 0.0
-        if bid_difference == 0:
-            # Conflict was a tie.
-            if car_action == 1:
-                # Car would have lost had it bid 0.
-                reward = -1.0
-            elif car_action == 0:
-                # Car would have won had it bid 1.
-                reward = 1.0
-        elif bid_difference == 1:
-            # One side won by one vote.
+        if self.voting_externality:
+            # Compute externality as the social welfare to everyone else if a given agent were present but voted
+            # differently.
+            if bid_difference == 0:
+                # Conflict was a tie.
+                if car_action == 1:
+                    # Car would have lost had it bid 0.
+                    reward = -1.0
+                elif car_action == 0:
+                    # Car would have won had it bid 1.
+                    reward = 1.0
+            elif bid_difference == 1:
+                # One side won by one vote.
+                if position == win_position and car_action == 1:
+                    # Car won, but it would have tied had it bid 0.
+                    reward = -1.0
+                elif position != win_position and car_action == 0:
+                    # Car lost, but it would have tied had it bid 1.
+                    reward = 1.0
+        else:
+            # Set to False to compute externality as the social welfare to everyone had a given agent not been present.
             if position == win_position and car_action == 1:
-                # Car won, but it would have tied had it bid 0.
-                reward = -1.0
+                # Car in winning position and car's action is 1.
+                if bid_difference == 0:
+                    # Car would have lost had it acted differently.
+                    reward = -1.0
+                elif bid_difference == 1:
+                    # Car would have tied had it acted differently.
+                    reward = -0.5
             elif position != win_position and car_action == 0:
-                # Car lost, but it would have tied had it bid 1.
-                reward = 1.0
-
-        # In correct way of computing:
-        # if position == win_position and car_action == 1:
-        #     # Car in winning position and car's action is 1.
-        #     if bid_difference == 0:
-        #         # Car would have lost had it acted differently.
-        #         reward = -1.0
-        #     elif bid_difference == 1:
-        #         # Car would have tied had it acted differently.
-        #         reward = -0.5
-        # elif position != win_position and car_action == 0:
-        #     # Car in losing position and car's action is 0.
-        #     if bid_difference == 0:
-        #         # Car would have won had it acted differently.
-        #         reward = 1.0
-        #     elif bid_difference == 1:
-        #         # Car would have tied had it acted differently.
-        #         reward = 0.5
+                # Car in losing position and car's action is 0.
+                if bid_difference == 0:
+                    # Car would have won had it acted differently.
+                    reward = 1.0
+                elif bid_difference == 1:
+                    # Car would have tied had it acted differently.
+                    reward = 0.5
 
         if car_id not in self.rewards:
             self.rewards[car_id] = 0
