@@ -10,8 +10,14 @@ class Simulator:
         self.num_cars = num_cars
         self.num_rounds = num_rounds
         self.num_roads = num_roads
-        self.total_cost = 0
 
+        # Store the total cost and reward for the simulation.
+        # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round
+        #   i.
+        # * simulation_rewards is a list of lists, where the element at index (i, j) is the total reward at iteration
+        #   j in round i.
+        self.simulation_costs = []
+        self.simulation_rewards = []
         # Set a global random seed, if specified.
         if random_seed is not None:
             random.seed(random_seed)
@@ -25,6 +31,9 @@ class Simulator:
     def run(self):
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
+            round_costs = [0]
+            round_rewards = [0]
+
             # Initialize the state.
             game = State(self.cars, self.protocol, self.num_roads)
             game.printState(round_id, 0)
@@ -34,19 +43,23 @@ class Simulator:
             while not game.isEnd():
                 game.updateState()
                 iteration_id += 1
-                if iteration_id > 2000:
-                    print('Here')
                 game.printState(round_id, iteration_id)
+                round_costs.append(game.getTotalCost())
+                round_rewards.append(self.protocol.getTotalReward())
 
             # Update the total cost.
-            self.total_cost += game.getTotalCost()
+            self.simulation_costs.append(round_costs)
+            self.simulation_rewards.append(round_rewards)
             game.printState(round_id, iteration_id)
-            print('Round %d\tTotal reward = %f\tTotal cost = %d' % (round_id, self.protocol.getTotalReward(),
-                                                                    self.total_cost))
-        print('TOTAL COST: %d' % self.total_cost)
+            print('Round %d\tTotal reward = %f\tTotal cost = %d' % (round_id, self.simulation_rewards[-1][-1],
+                                                                    self.simulation_costs[-1][-1]))
+        print('TOTAL COST: %d' % self.simulation_costs[-1][-1])
 
-    def getTotalCost(self):
-        return self.total_cost
+    def getSimulationCosts(self):
+        return self.simulation_costs
+
+    def getSimulationRewards(self):
+        return self.simulation_rewards
 
 
 class State:

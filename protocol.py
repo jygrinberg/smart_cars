@@ -15,7 +15,10 @@ class Protocol(object):
         Identifies the 'winning' position in the conflict (the first car in the winning position is the one that gets to
         proceed into the intersection), and the 'losing' position in the conflict (the cars in the losing position do
         not move).
-        TODO
+        :param position_0: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_0: List of actions for each car in position_0.
+        :param position_1: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_1: List of actions for each car in position_1.
         :return: Winning position (x,y), losing position  (x,y)
         """
         pass
@@ -25,9 +28,12 @@ class Protocol(object):
         """
         Computes and stores the reward (if any) for the car at the given position based on the results of the conflict.
         :param car_id: Car that will be rewarded.
-        :param position: Current position of the car for whom to compute a reward.
-        :param win_position: Position that won the conflict.
-        TODO
+        :param position: (x,y) tuple coordinates of the current position of the car for whom to compute a reward.
+        :param win_position: (x,y) tuple coordinates of the position that won the conflict.
+        :param position_0: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_0: List of actions for each car in position_0.
+        :param position_1: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_1: List of actions for each car in position_1.
         :return: Float reward value.
         """
         pass
@@ -43,11 +49,15 @@ class Protocol(object):
         return 0.0
 
     def getTotalReward(self):
+        """
+        Returns the total reward summed across all cars.
+        :return: Float of total reward.
+        """
         return sum([reward for car_id, reward in self.rewards.iteritems()])
 
 class RandomProtocol(Protocol):
     """
-    This is a placeholder protocol that makes random decisions.
+    This is a baseline protocol that makes random decisions.
     """
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         # Arbitrarily pick win and lose positions.
@@ -89,22 +99,40 @@ class VCGProtocol(Protocol):
         bid_difference = abs(position_0_bids - position_1_bids)
 
         reward = 0.0
-        if position == win_position and car_action == 1:
-            # Car in winning position and car's action is 1.
-            if bid_difference == 0:
-                # Car would have lost had it acted differently.
+        if bid_difference == 0:
+            # Conflict was a tie.
+            if car_action == 1:
+                # Car would have lost had it bid 0.
                 reward = -1.0
-            elif bid_difference == 1:
-                # Car would have tied had it acted differently.
-                reward = -0.5
-        elif position != win_position and car_action == 0:
-            # Car in losing position and car's action is 0.
-            if bid_difference == 0:
-                # Car would have won had it acted differently.
+            elif car_action == 0:
+                # Car would have won had it bid 1.
                 reward = 1.0
-            elif bid_difference == 1:
-                # Car would have tied had it acted differently.
-                reward = 0.5
+        elif bid_difference == 1:
+            # One side won by one vote.
+            if position == win_position and car_action == 1:
+                # Car won, but it would have tied had it bid 0.
+                reward = -1.0
+            elif position != win_position and car_action == 0:
+                # Car lost, but it would have tied had it bid 1.
+                reward = 1.0
+
+        # In correct way of computing:
+        # if position == win_position and car_action == 1:
+        #     # Car in winning position and car's action is 1.
+        #     if bid_difference == 0:
+        #         # Car would have lost had it acted differently.
+        #         reward = -1.0
+        #     elif bid_difference == 1:
+        #         # Car would have tied had it acted differently.
+        #         reward = -0.5
+        # elif position != win_position and car_action == 0:
+        #     # Car in losing position and car's action is 0.
+        #     if bid_difference == 0:
+        #         # Car would have won had it acted differently.
+        #         reward = 1.0
+        #     elif bid_difference == 1:
+        #         # Car would have tied had it acted differently.
+        #         reward = 0.5
 
         if car_id not in self.rewards:
             self.rewards[car_id] = 0
