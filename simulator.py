@@ -5,7 +5,7 @@ import random
 import time
 
 class Simulator:
-    def __init__(self, protocol, CarClass, num_cars, num_rounds, num_roads, random_seed=None):
+    def __init__(self, protocol, CarClass, num_cars, num_rounds, num_roads):
         self.protocol = protocol
         self.num_cars = num_cars
         self.num_rounds = num_rounds
@@ -18,9 +18,6 @@ class Simulator:
         #   j in round i.
         self.simulation_costs = []
         self.simulation_rewards = []
-        # Set a global random seed, if specified.
-        if random_seed is not None:
-            random.seed(random_seed)
 
         # Initialize the cars.
         self.cars = []
@@ -38,7 +35,7 @@ class Simulator:
             game = State(self.cars, self.protocol, self.num_roads)
             game.printState(round_id, 0)
 
-            # Simulate the round until all cars reach their destination.
+            # Simulate the round until all cars reach their destinations.
             iteration_id = 0
             while not game.isEnd():
                 game.updateState()
@@ -55,10 +52,13 @@ class Simulator:
                                                                     self.simulation_costs[-1][-1]))
         print('TOTAL COST: %d' % self.simulation_costs[-1][-1])
 
-    def getSimulationCosts(self):
+    def getCosts(self):
         return self.simulation_costs
 
-    def getSimulationRewards(self):
+    def getMeanCost(self):
+        return sum([costs[-1] for costs in self.simulation_costs]) / float(len(self.simulation_costs))
+
+    def getRewards(self):
         return self.simulation_rewards
 
 
@@ -104,8 +104,9 @@ class State:
                 travelling_cars.append(car)
         self.cars = travelling_cars
 
-        # Determine the next position to which each car would *like* to move. next_positions maps next positions to
-        # car_ids that to move to that position.
+        # Determine the next position to which each car would *like* to move.
+        # * next_positions is a dictionary. Key is next_position. Value is a set of car_ids wanting to move there.
+        # * car_next_positions is a dictionary. Key is car_id. Value is its desired next position.
         next_positions = {}
         car_next_positions = {}
         for car in self.cars:
@@ -115,11 +116,12 @@ class State:
             next_positions[next_position].add(car)
             car_next_positions[car.car_id] = next_position
 
-        # Resolve next_positions in order to determine which cars move. next_positions maps from car_id to the position
-        # to which the car will move.
+        # Resolve the conflicts in order to determine which cars move.
+        # * {win,lose}_positions are sets containing positions with at least one car that either won or lost.
         win_positions = set()
         lose_positions = set()
         for next_position, cars in next_positions.iteritems():
+            # Arbitrarily set one position in the conflict as position_0, and the other (if it exists) as position_1.
             position_0 = None
             position_1 = None
             for car in cars:
@@ -131,7 +133,7 @@ class State:
                     break
 
             # Compute the information given to each car when asking it for a decision. num_cars is number of cars at
-            # the given position.
+            # the given position corresponding to the index.
             num_cars = [0, 0]
             for car in cars:
                 if car.position == position_0:
@@ -139,8 +141,9 @@ class State:
                 else:
                     num_cars[1] += 1
 
-            # Get each car's action (i.e. move forward, if possible, or agree not to move). Actions maps car_id to that
-            # car's action. actions_list is a list of votes at each position.
+            # Get each car's action (i.e. move forward, if possible, or agree not to move).
+            # * actions is a dictionary. Key is car_id. Value is the car's action.
+            # * actions_list is a list of actions for each position.
             actions = {}
             actions_list = [[], []]
             for car in cars:
@@ -165,7 +168,7 @@ class State:
                 self.protocol.updateCarReward(car.car_id, car.position, win_position, actions[car.car_id], position_0,
                                               actions_list[0], position_1, actions_list[1])
 
-        # Update the car ranks. moving_cars maps next_positions to cars that will move.
+        # Update the car ranks. moving_cars is a dictionary. Key is next_position. Value is the car_id that will move.
         moving_cars = {}
         for car in self.cars:
             if car.position in win_positions:
@@ -203,8 +206,18 @@ class State:
         return self.total_cost
 
     def _getRandomRoute(self):
+        '''
+        Generates a random route for a car. Cars start at a random coordinate on one of the edges of the board. They
+        travel straight for a random number of road segments, then turn (in the direction of the street on which they
+        land), then continue straight until they reach the end of the board.
+        :return: origin coordinates, destination coordinates, route (which is a list of [direction, num_segments]
+        lists). direction can be either 'up', 'down', 'left', or 'right'.
+        '''
         route = []
+        # Pick a starting side.
         side = random.choice(['top', 'left', 'bottom', 'right'])
+        # Based on the starting side, pick a random number of road segments to go straight, at which point the car will
+        # turn. Determine which direction the turn will be, then compute the coordinates of the destination.
         if side == 'top':
             x = random.randint(0, (self.width - 2) / 4) * 4 + 1
             origin = (x, 0)
@@ -248,7 +261,7 @@ class State:
 
         return origin, destination, route
 
-    def printState(self, round_id, iteration_id, print_states=False):
+    def printState(self, round_id, iteration_id, print_states=True):
         if print_states:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')

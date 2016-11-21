@@ -38,6 +38,10 @@ class Protocol(object):
         """
         pass
 
+    @abstractmethod
+    def __str__(self):
+        pass
+
     def getCarReward(self, car_id):
         """
         Returns the total reward accrued for the specified car (initialized to 0).
@@ -60,7 +64,13 @@ class RandomProtocol(Protocol):
     This is a baseline protocol that makes random decisions.
     """
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
-        # Arbitrarily pick win and lose positions.
+        # If only one position has cars, pick that position.
+        if len(actions_0) > 0 and len(actions_1) == 0:
+            return position_0, position_1
+        elif len(actions_1) > 0 and len(actions_0) == 0:
+            return position_1, position_0
+
+        # Otherwise, arbitrarily pick win and lose positions.
         if random.choice([True, False]):
             return position_0, position_1
         return position_1, position_0
@@ -73,6 +83,8 @@ class RandomProtocol(Protocol):
         self.rewards[car_id] += reward
         return reward
 
+    def __str__(self):
+        return 'random'
 
 class VCGProtocol(Protocol):
     """
@@ -84,7 +96,7 @@ class VCGProtocol(Protocol):
         agent were present but voted differently. Set to False to compute externality as the social welfare to everyone
         had a given agent not been present.
         '''
-        super(Protocol, self).__init__()
+        super(VCGProtocol, self).__init__()
         self.voting_externality = voting_externality
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -150,3 +162,6 @@ class VCGProtocol(Protocol):
             self.rewards[car_id] = 0
         self.rewards[car_id] += reward
         return reward
+
+    def __str__(self):
+        return 'vcg'

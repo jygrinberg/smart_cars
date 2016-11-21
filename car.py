@@ -8,9 +8,16 @@ class Car:
     def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
         """
         Determines the car's action at each time step.
-        TODO
+        :param position_0: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_0: List of actions for each car in position_0.
+        :param position_1: (x,y) tuple coordinates of one of the positions involved in the conflict.
+        :param actions_1: List of actions for each car in position_1.
         :return: Action value.
         """
+        pass
+
+    @abstractmethod
+    def __str__(self):
         pass
 
     def __init__(self, car_id, protocol):
@@ -64,8 +71,14 @@ class RandomCar(Car):
             return random.choice([0, 1])
         return 0
 
+    def __str__(self):
+        return 'random'
+
 class TruthfulCar(Car):
     def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
         if self.protocol.getCarReward(self.car_id) > 0:
             return self.priority
         return 0
+
+    def __str__(self):
+        return 'truthful'
