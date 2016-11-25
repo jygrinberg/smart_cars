@@ -20,8 +20,14 @@ class Configurer:
 
     def configFromFile(self, filename):
         with open(filename, 'r') as f:
-            self.num_cars = int(f.readline())
-            self.num_roads = int(f.readline())
+            try:
+                self.num_cars = int(f.readline().strip())
+            except:
+                raise Exception('First line in config file must have the format: num_cars (int)')
+            try:
+                self.num_roads = int(f.readline().strip())
+            except:
+                raise Exception('Second line in config file must have the format: num_roads (int)')
 
             # Important! Might need to multiply by 4 instead of 2 if using getRandomTurnRoute() instead of
             # getRandomRoute().
@@ -29,9 +35,13 @@ class Configurer:
             self.height = self.num_roads * 2 + 1
 
             for line in f.readlines():
-                side, position, priority = line.split('\t')
+                values = line.strip().split(' ')
+                if len(values) != 3:
+                    raise Exception('Line in config file must have the format: '
+                                    'side (string)<space>position (int)<space>priority (int), but was:\n\t%s' % line)
+                side, position, priority = values
                 position = int(position)
-                priority = int(priority)
+                priority = float(priority)
                 route = []
                 if side == 'top':
                     origin = (position, 0)
@@ -45,10 +55,12 @@ class Configurer:
                     origin = (position, self.height - 1)
                     route.append(['up', self.height - 1])
                     destination = (position, 0)
-                else:
+                elif side =='right':
                     origin = (self.width - 1, position)
                     route.append(['left', self.width - 1])
                     destination = (0, position)
+                else:
+                    raise Exception('Side value in config file must be top, left, bottom, or right, but is: %s' % side)
                 self._car_trips.append((origin, destination, route, priority))
 
     def getNextCarTrip(self, car_id):
