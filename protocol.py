@@ -8,6 +8,8 @@ class Protocol(object):
     def __init__(self):
         # Initialize a map from car_id to total reward.
         self.rewards = {}
+        self.fixed_cost = None
+        self.initial_reward = 10.0
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -42,21 +44,31 @@ class Protocol(object):
     def __str__(self):
         pass
 
+    def setSimulationParams(self, fixed_cost):
+        """
+        Set parameters specific to the simulation.
+        :param fixed_cost: Cost per car per iteration (aside from the car's priority).
+        :return:
+        """
+        self.fixed_cost = fixed_cost
+
     def getCarReward(self, car_id):
         """
-        Returns the total reward accrued for the specified car (initialized to 0).
+        Returns the total reward accrued for the specified car (initialized to self.initial_reward).
         :param car_id: Car for which to return the total reward.
         :return: Float reward value.
         """
         if car_id in self.rewards:
             return self.rewards[car_id]
-        return 0.0
+        return self.initial_reward
 
     def getTotalReward(self):
         """
         Returns the total reward summed across all cars.
         :return: Float of total reward.
         """
+        # TODO The reward for some cars may not have been initialized. Make sure this function takes these cars into
+        # account.
         return sum([reward for car_id, reward in self.rewards.iteritems()])
 
 class RandomProtocol(Protocol):
@@ -64,6 +76,9 @@ class RandomProtocol(Protocol):
     This is a baseline protocol that makes random decisions.
     """
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
+        if position_1 is None:
+            return position_0, position_1
+
         # If only one position has cars, pick that position.
         if len(actions_0) > 0 and len(actions_1) == 0:
             return position_0, position_1
@@ -79,7 +94,7 @@ class RandomProtocol(Protocol):
         # Arbitrarily pick a reward.
         reward = random.randint(0, 1)
         if car_id not in self.rewards:
-            self.rewards[car_id] = 0
+            self.rewards[car_id] = self.initial_reward
         self.rewards[car_id] += reward
         return reward
 
@@ -100,10 +115,12 @@ class VCGProtocol(Protocol):
         self.voting_externality = voting_externality
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
-        # Total bid is the sum of actions (each action is 0 or 1) plus the number of bidders (because cost per car is
-        # 1 or 2).
-        position_0_bids = sum(actions_0) + len(actions_0)
-        position_1_bids = sum(actions_1) + len(actions_1)
+        if position_1 is None:
+            return position_0, position_1
+
+        # Total bid is the sum of each car's bid plus fixed cost.
+        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
+        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
 
         # Winner is the position with a higher bid. Ties are broken randomly.
         win_position = position_0
@@ -115,12 +132,12 @@ class VCGProtocol(Protocol):
         return win_position, lose_position
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
-        position_0_bids = sum(actions_0) + len(actions_0)
-        position_1_bids = sum(actions_1) + len(actions_1)
+        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
+        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
         bid_difference = abs(position_0_bids - position_1_bids)
 
         reward = 0.0
-        if self.voting_externality:
+        if self.voting_externality and self.fixed_cost == 1.0:
             # Compute externality as the social welfare to everyone else if a given agent were present but voted
             # differently.
             if bid_difference == 0:
@@ -129,7 +146,7 @@ class VCGProtocol(Protocol):
                     # Car would have lost had it bid 0.
                     reward = -1.0
                 elif car_action == 0:
-                    # Car would have won had it bid 1.
+                    # Car would have won had it bid non-zero.
                     reward = 1.0
             elif bid_difference == 1:
                 # One side won by one vote.
@@ -139,6 +156,33 @@ class VCGProtocol(Protocol):
                 elif position != win_position and car_action == 0:
                     # Car lost, but it would have tied had it bid 1.
                     reward = 1.0
+        elif self.voting_externality:
+            # Compute externality as the social welfare to everyone else if a given agent were present but voted
+            # differently.
+            if bid_difference == 0:
+                # Conflict was a tie.
+                if car_action == 1:
+                    # Car would have lost had it bid 0.
+                    reward = -0.5
+                elif car_action == 0:
+                    # Car would have won had it bid 1.
+                    reward = 0.5
+            elif position == win_position:
+                # Car was in the winning position.
+                if bid_difference < car_action:
+                    # Car would have lost had it bid 0.
+                    reward = -1.0
+                elif bid_difference == car_action:
+                    # Car would have tied had it bid 0.
+                    reward = -0.5
+            else:
+                # Car was in the losing position.
+                if bid_difference < car_action:
+                    # Car would have won had it bid 1.
+                    reward = 1.0
+                elif bid_difference == car_action:
+                    # Car would have tied had it bid 1.
+                    reward = 0.5
         else:
             # Set to False to compute externality as the social welfare to everyone had a given agent not been present.
             if position == win_position and car_action == 1:
@@ -159,7 +203,7 @@ class VCGProtocol(Protocol):
                     reward = 0.5
 
         if car_id not in self.rewards:
-            self.rewards[car_id] = 0
+            self.rewards[car_id] = self.initial_reward
         self.rewards[car_id] += reward
         return reward
 

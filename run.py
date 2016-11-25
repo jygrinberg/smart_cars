@@ -93,6 +93,8 @@ def getOptions():
                       help='number of rounds to simulate')
     parser.add_option('-g', '--num_roads', dest='num_roads', type='int', default=5,
                       help='number of up/down or left/right road pairs in the network')
+    parser.add_option('-f', '--fixed_cost', dest='fixed_cost', type='float', default=1.0,
+                      help='fixed cost per car per iteration')
     parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
                       help='seed to use a pseud-random generator')
     parser.add_option('--plot_road_simulations', dest='plot_road_simulations', action='store_true',
@@ -120,7 +122,8 @@ def main():
         CarClass = getCarClass(options.car_class_name)
 
         # Initialize the simulator.
-        simulator = Simulator(protocol, CarClass, options.num_cars, options.num_rounds, options.num_roads)
+        simulator = Simulator(protocol, CarClass, options.num_cars, options.num_rounds, options.num_roads,
+                              options.fixed_cost)
 
         # Run the simulation.
         simulator.run()
