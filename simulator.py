@@ -1,20 +1,23 @@
 from __future__ import print_function
 from car import *
 from protocol import *
+from configurer import *
 import random
 import time
 
 class Simulator:
-    def __init__(self, protocol, CarClass, num_cars, num_rounds, num_roads, fixed_cost):
+    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, config):
         """
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
         """
         self.protocol = protocol
-        self.num_cars = num_cars
         self.num_rounds = num_rounds
-        self.num_roads = num_roads
         self.fixed_cost = fixed_cost
         self.protocol.setSimulationParams(self.fixed_cost)
+
+        self.config = config
+        self.num_cars = self.config.num_cars
+        self.num_roads = self.config.num_roads
 
         # Store the total cost and reward for the simulation.
         # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round
@@ -37,7 +40,7 @@ class Simulator:
             round_rewards = [0]
 
             # Initialize the state.
-            game = GameState(self.cars, self.protocol, self.num_roads, self.fixed_cost)
+            game = GameState(self.cars, self.protocol, self.fixed_cost, self.config)
             game.printState(round_id, 0)
 
             # Simulate the round until all cars reach their destinations.
@@ -73,22 +76,22 @@ class GameState:
     Street ids 3, 7, 11, etc. go up/left.
     """
 
-    def __init__(self, cars, protocol, num_roads, fixed_cost):
+    def __init__(self, cars, protocol, fixed_cost, config):
         self.protocol = protocol
         self.fixed_cost = fixed_cost
+        self.config = config
 
         # Initialize the board, which stores the number of cars at each (x,y) position.
-        # Important! Might need to multiply by 4 instead of 2 if using getRandomTurnRoute() instead of getRandomRoute().
-        self.width = num_roads * 2 + 1
-        self.height = num_roads * 2 + 1
-        self.board = [[0] * self.height for _ in xrange(self.width)]
+
+        self.board = [[0] * self.config.height for _ in xrange(self.config.width)]
 
         # Initialize a trip for each car. Add each car to the board.
         self.cars = cars
         for car in self.cars:
-            # Get the starting position, destination, and a route from origin to destination. The route is a list of
-            # 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or 'right'}, num_steps).
-            origin, destination, route = self._getRandomRoute()
+            # Get the starting position, destination, route from origin to destination, and priority for the trip. The
+            # route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
+            # 'right'}, num_steps).
+            origin, destination, route, priority = self.config.getNextCarTrip(car.car_id)
 
             # Determine the queue number of the car. This number is greater than 0 if there are already cars at this
             # location.
@@ -96,7 +99,7 @@ class GameState:
             self.board[origin[0]][origin[1]] += 1
 
             # Initialize the trip.
-            car.initTrip(origin, rank, route, destination)
+            car.initTrip(origin, destination, route, priority, rank)
 
         # Initialize the total cost, and number of cars not yet arrived.
         self.total_cost = 0.0
@@ -209,121 +212,23 @@ class GameState:
     def getTotalCost(self):
         return self.total_cost
 
-    def _getRandomRoute(self):
-        '''
-        Generates a random route for a car. Cars start at a random coordinate on one of the edges of the board and
-        continue straight until they reach the end of the board.
-        :return: origin coordinates, destination coordinates, route (which is a list of [direction, num_segments]
-        lists). direction can be either 'up', 'down', 'left', or 'right'.
-        '''
-        route = []
-        # Pick a starting side. If the board is 3x3 (i.e. one road going right and one road going down), cars can only
-        # start on the top or left. Otherwise, cars can start on any side.
-        possible_sides = ['top', 'left']
-        if self.width >= 4:
-            possible_sides.append('bottom')
-        if self.height >= 4:
-            possible_sides.append('right')
-        side = random.choice(possible_sides)
-
-        # Based on the starting side, pick a random number of road segments to go straight, at which point the car will
-        # turn. Determine which direction the turn will be, then compute the coordinates of the destination.
-        if side == 'top':
-            x = random.randint(0, (self.width - 2) / 4) * 4 + 1
-            origin = (x, 0)
-            route.append(['down', self.height - 1])
-            destination = (x, self.height - 1)
-        elif side == 'left':
-            y = random.randint(0, (self.height - 2) / 4) * 4 + 1
-            origin = (0, y)
-            route.append(['right', self.width - 1])
-            destination = (self.width - 1, y)
-        elif side == 'bottom':
-            x = random.randint(0, (self.width - 4) / 4) * 4 + 3
-            origin = (x, self.height - 1)
-            route.append(['up', self.height - 1])
-            destination = (x, 0)
-        else:
-            y = random.randint(0, (self.height - 4) / 4) * 4 + 3
-            origin = (self.width - 1, y)
-            route.append(['left', self.width - 1])
-            destination = (0, y)
-
-        return origin, destination, route
-
-    def _getRandomTurnRoute(self):
-        '''
-        Generates a random route for a car. Cars start at a random coordinate on one of the edges of the board. They
-        travel straight for a random number of road segments, then turn (in the direction of the street on which they
-        land), then continue straight until they reach the end of the board.
-        :return: origin coordinates, destination coordinates, route (which is a list of [direction, num_segments]
-        lists). direction can be either 'up', 'down', 'left', or 'right'.
-        '''
-        route = []
-        # Pick a starting side.
-        side = random.choice(['top', 'left', 'bottom', 'right'])
-        # Based on the starting side, pick a random number of road segments to go straight, at which point the car will
-        # turn. Determine which direction the turn will be, then compute the coordinates of the destination.
-        if side == 'top':
-            x = random.randint(0, (self.width - 2) / 4) * 4 + 1
-            origin = (x, 0)
-            route.append(['down', random.randrange(1, self.height - 1, 2)])
-            if (route[0][1] - 1) % 4 == 0:
-                route.append(['right', self.width - 1 - x])
-                destination = (self.width - 1, route[0][1])
-            else:
-                route.append(['left', x])
-                destination = (0, route[0][1])
-        elif side == 'left':
-            y = random.randint(0, (self.height - 2) / 4) * 4 + 1
-            origin = (0, y)
-            route.append(['right', random.randrange(1, self.width - 1, 2)])
-            if (route[0][1] - 1) % 4 == 0:
-                route.append(['down', self.height - 1 - y])
-                destination = (route[0][1], self.height - 1)
-            else:
-                route.append(['up', y])
-                destination = (route[0][1], 0)
-        elif side == 'bottom':
-            x = random.randint(0, (self.width - 4) / 4) * 4 + 3
-            origin = (x, self.height - 1)
-            route.append(['up', random.randrange(1, self.height - 1, 2)])
-            if (self.height - route[0][1] - 2) % 4 == 0:
-                route.append(['right', self.width - 1 - x])
-                destination = (self.width - 1, self.height - 1 - route[0][1])
-            else:
-                route.append(['left', x])
-                destination = (0, self.height - 1 - route[0][1])
-        else:
-            y = random.randint(0, (self.height - 4) / 4) * 4 + 3
-            origin = (self.width - 1, y)
-            route.append(['left', random.randrange(1, self.width - 1, 2)])
-            if (self.width - route[0][1] - 2) % 4 == 0:
-                route.append(['down', self.height - 1 - y])
-                destination = (self.width - 1 - route[0][1], self.height - 1)
-            else:
-                route.append(['up', y])
-                destination = (self.width - 1 - route[0][1], 0)
-
-        return origin, destination, route
-
     def printState(self, round_id, iteration_id, print_states=False):
         if print_states:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')
-            for x in xrange(self.width):
+            for x in xrange(self.config.width):
                 if x % 4 == 3:
                     print('n ', end='')
                 else:
                     print('  ', end='')
             print('')
-            for y in xrange(self.height):
+            for y in xrange(self.config.height):
                 if y % 4 == 3:
                     print('<-', end='')
                 else:
                     print('  ', end='')
 
-                for x in xrange(self.width):
+                for x in xrange(self.config.width):
                     count = self.board[x][y]
                     if x % 2 == 0 and y % 2 == 0:
                         count_string = ' '
@@ -340,7 +245,7 @@ class GameState:
                 print('')
 
             print('  ', end='')
-            for x in xrange(self.width):
+            for x in xrange(self.config.width):
                 if x % 4 == 1:
                     print('v ', end='')
                 else:

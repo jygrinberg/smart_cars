@@ -4,11 +4,12 @@ Main file for running the car simulation.
 """
 
 import os
-from optparse import OptionParser
-from simulator import *
-from protocol import *
-from car import *
 import util
+from car import *
+from configurer import *
+from protocol import *
+from simulator import *
+from optparse import OptionParser
 
 def getProtocol(protocol_name):
     """
@@ -32,7 +33,7 @@ def getCarClass(car_class_name):
         return TruthfulCar
     return None
 
-def runAndPlotRoadSimulations(num_cars, num_rounds):
+def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost):
     min_num_roads = 1
     max_num_roads = 50
     costs = {}
@@ -42,14 +43,16 @@ def runAndPlotRoadSimulations(num_cars, num_rounds):
         CarClass = getCarClass(context['car'])
         curr_costs = []
         for curr_num_roads in num_roads:
-            simulator = Simulator(protocol, CarClass, num_cars, num_rounds, curr_num_roads)
+            config = Configurer()
+            config.configWithArgs(num_cars, curr_num_roads)
+            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
     util.plotVariableVsCost(num_roads, costs, 'Roads',
                             'roads_vs_cost_%d_%d_%d.png' % (min_num_roads, max_num_roads, num_cars))
 
-def runAndPlotCarSimulations(num_roads, num_rounds):
+def runAndPlotCarSimulations(num_roads, num_rounds, fixed_cost):
     min_num_cars = 0
     max_num_cars = 1000
     num_cars_delta = 100
@@ -59,8 +62,10 @@ def runAndPlotCarSimulations(num_roads, num_rounds):
         protocol = getProtocol(context['protocol'])
         CarClass = getCarClass(context['car'])
         curr_costs = []
-        for curr_num_roads in num_cars:
-            simulator = Simulator(protocol, CarClass, curr_num_roads, num_rounds, curr_num_roads)
+        for curr_num_cars in num_cars:
+            config = Configurer()
+            config.configWithArgs(curr_num_cars, num_roads)
+            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
@@ -97,6 +102,8 @@ def getOptions():
                       help='fixed cost per car per iteration')
     parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
                       help='seed to use a pseud-random generator')
+    parser.add_option('--config_filename', dest='config_filename', default=None,
+                      help='pathname for file specifying the board configuration')
     parser.add_option('--plot_road_simulations', dest='plot_road_simulations', action='store_true',
                       help='generate a plot of num_roads vs. total cost')
     parser.add_option('--plot_car_simulations', dest='plot_car_simulations', action='store_true',
@@ -113,17 +120,24 @@ def main():
     setRandomSeed(options.random_seed)
 
     if options.plot_road_simulations:
-        runAndPlotRoadSimulations(options.num_cars, options.num_rounds)
+        runAndPlotRoadSimulations(options.num_cars, options.num_rounds, options.fixed_cost)
     elif options.plot_car_simulations:
-        runAndPlotCarSimulations(options.num_roads, options.num_rounds)
+        runAndPlotCarSimulations(options.num_roads, options.num_rounds, options.fixed_cost)
     else:
         # Get the protocol and car specified by the command line arguments.
         protocol = getProtocol(options.protocol)
         CarClass = getCarClass(options.car_class_name)
 
+        # Set up the configurer, which can configure the simulation from a config file, or from command line args and
+        # randomly generated car routes.
+        config = Configurer()
+        if options.config_filename:
+            config.configFromFile(options.config_filename)
+        else:
+            config.configWithArgs(options.num_cars, options.num_roads)
+
         # Initialize the simulator.
-        simulator = Simulator(protocol, CarClass, options.num_cars, options.num_rounds, options.num_roads,
-                              options.fixed_cost)
+        simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, config)
 
         # Run the simulation.
         simulator.run()

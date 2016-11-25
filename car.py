@@ -29,14 +29,12 @@ class Car:
         self.destination = None
         self.protocol = protocol
 
-    def initTrip(self, origin, rank, route, destination):
+    def initTrip(self, origin, destination, route, priority, rank):
         self.position = origin
-        self.rank = rank
-        self.route = route
         self.destination = destination
-
-        # Pick a random priority.
-        self.priority = random.choice([0, 1])
+        self.route = route
+        self.priority = priority
+        self.rank = rank
 
     def getNextPosition(self):
         if len(self.route) == 0:
