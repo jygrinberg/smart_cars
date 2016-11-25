@@ -212,7 +212,7 @@ class GameState:
     def getTotalCost(self):
         return self.total_cost
 
-    def printState(self, round_id, iteration_id, print_states=True):
+    def printState(self, round_id, iteration_id, print_states=False):
         if print_states:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')

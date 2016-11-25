@@ -68,6 +68,7 @@ class Configurer:
             return self._car_trips[car_id]
 
         # Generate a random route and pick a random priority in the range [0, 1].
+        random.seed(car_id)
         origin, destination, route = self._getRandomRoute()
         priority = random.choice([0, 1])
         return origin, destination, route, priority
