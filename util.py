@@ -1,5 +1,7 @@
 import os
 
+VERBOSE = False
+
 def getOutfilePathname(filename):
     '''
     Returns the absolute pathname to the provided filename in the outfiles director.

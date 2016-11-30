@@ -1,0 +1,1 @@
+-p vcg -c truthful --random_seed=0 --num_cars=10 --num_roads=1 --num_rounds=10 --fixed_cost=0.1 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv

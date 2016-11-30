@@ -4,6 +4,7 @@ from protocol import *
 from configurer import *
 import random
 import time
+import util
 
 class Simulator:
     def __init__(self, protocol, CarClass, num_rounds, fixed_cost, config):
@@ -212,8 +213,8 @@ class GameState:
     def getTotalCost(self):
         return self.total_cost
 
-    def printState(self, round_id, iteration_id, print_states=False):
-        if print_states:
+    def printState(self, round_id, iteration_id):
+        if util.VERBOSE:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')
             for x in xrange(self.config.width):

@@ -9,7 +9,7 @@ class Protocol(object):
         # Initialize a map from car_id to total reward.
         self.rewards = {}
         self.fixed_cost = None
-        self.initial_reward = 10.0
+        self.initial_reward = 10000.0
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):

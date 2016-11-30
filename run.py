@@ -108,7 +108,13 @@ def getOptions():
                       help='generate a plot of num_roads vs. total cost')
     parser.add_option('--plot_car_simulations', dest='plot_car_simulations', action='store_true',
                       help='generate a plot of num_cars vs. total cost')
+    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
+                      help='print the board after each iteration')
     options, args = parser.parse_args()
+
+    # Set the verbose flag.
+    if options.verbose:
+        util.VERBOSE = True
 
     return options, args
 
