@@ -9,7 +9,7 @@ class Protocol(object):
         # Initialize a map from car_id to total reward.
         self.rewards = {}
         self.fixed_cost = None
-        self.initial_reward = 10000.0
+        self.initial_reward = 0.0
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -62,14 +62,18 @@ class Protocol(object):
             return self.rewards[car_id]
         return self.initial_reward
 
-    def getTotalReward(self):
+    def getTotalReward(self, num_cars):
         """
         Returns the total reward summed across all cars.
         :return: Float of total reward.
         """
-        # TODO The reward for some cars may not have been initialized. Make sure this function takes these cars into
-        # account.
-        return sum([reward for car_id, reward in self.rewards.iteritems()])
+        sum = 0
+        for car_id in xrange(num_cars):
+            if car_id in self.rewards:
+                sum += self.rewards[car_id]
+            else:
+                sum += self.initial_reward
+        return sum
 
 class RandomProtocol(Protocol):
     """

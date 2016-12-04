@@ -20,7 +20,7 @@ class Car:
     def __str__(self):
         pass
 
-    def __init__(self, car_id, protocol):
+    def __init__(self, car_id, protocol, unlimited_reward):
         self.car_id = car_id
         self.priority = None
         self.position = None
@@ -28,6 +28,7 @@ class Car:
         self.route = None
         self.destination = None
         self.protocol = protocol
+        self.unlimited_reward = unlimited_reward
 
     def initTrip(self, origin, destination, route, priority, rank):
         self.position = origin
@@ -65,7 +66,7 @@ class Car:
 
 class RandomCar(Car):
     def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
-        if self.protocol.getCarReward(self.car_id) > 0:
+        if self.unlimited_reward or self.protocol.getCarReward(self.car_id) > 0:
             return random.choice([0, 1])
         return 0
 
@@ -74,7 +75,7 @@ class RandomCar(Car):
 
 class TruthfulCar(Car):
     def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
-        if self.protocol.getCarReward(self.car_id) > 0:
+        if self.unlimited_reward or self.protocol.getCarReward(self.car_id) > 0:
             return self.priority
         return 0
 

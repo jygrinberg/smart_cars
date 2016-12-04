@@ -2,14 +2,16 @@ from __future__ import print_function
 from car import *
 from protocol import *
 from configurer import *
-import random
+from animator import *
 import time
 import util
 
+
 class Simulator:
-    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, config):
+    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, config):
         """
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
+        :param unlimited_reward: Initialize cars with infinite reward so that they can bid 1.0 whenever desired.
         """
         self.protocol = protocol
         self.num_rounds = num_rounds
@@ -31,18 +33,23 @@ class Simulator:
         # Initialize the cars.
         self.cars = []
         for car_id in xrange(self.num_cars):
-            car = CarClass(car_id, self.protocol)
+            car = CarClass(car_id, self.protocol, unlimited_reward)
             self.cars.append(car)
 
+        self.animator = Animator(500, self.config.height, self.num_cars)
+
     def run(self):
+        self.animator.initAnimation()
+
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
             round_costs = [0]
             round_rewards = [0]
 
             # Initialize the state.
-            game = GameState(self.cars, self.protocol, self.fixed_cost, self.config)
+            game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id)
             game.printState(round_id, 0)
+            self.animator.updateAnimation(game.board, game.cost_board)
 
             # Simulate the round until all cars reach their destinations.
             iteration_id = 0
@@ -50,13 +57,15 @@ class Simulator:
                 game.updateState()
                 iteration_id += 1
                 game.printState(round_id, iteration_id)
+                self.animator.updateAnimation(game.board, game.cost_board)
                 round_costs.append(game.getTotalCost())
-                round_rewards.append(self.protocol.getTotalReward())
+                round_rewards.append(self.protocol.getTotalReward(self.num_cars))
 
             # Update the total cost.
             self.simulation_costs.append(round_costs)
             self.simulation_rewards.append(round_rewards)
             game.printState(round_id, iteration_id)
+            self.animator.updateAnimation(game.board, game.cost_board)
             print('Round %d\tTotal reward = %f\tTotal cost = %f' % (round_id, self.simulation_rewards[-1][-1],
                                                                     self.simulation_costs[-1][-1]))
         print('TOTAL MEAN COST: %f' % self.getMeanCost())
@@ -77,14 +86,16 @@ class GameState:
     Street ids 3, 7, 11, etc. go up/left.
     """
 
-    def __init__(self, cars, protocol, fixed_cost, config):
+    def __init__(self, cars, protocol, fixed_cost, config, round_id):
         self.protocol = protocol
         self.fixed_cost = fixed_cost
         self.config = config
 
         # Initialize the board, which stores the number of cars at each (x,y) position.
-
         self.board = [[0] * self.config.height for _ in xrange(self.config.width)]
+
+        # Initialize the board storing the total cost at each (x,y) position in the board.
+        self.cost_board = [[0] * self.config.height for _ in xrange(self.config.width)]
 
         # Initialize a trip for each car. Add each car to the board.
         self.cars = cars
@@ -92,7 +103,7 @@ class GameState:
             # Get the starting position, destination, route from origin to destination, and priority for the trip. The
             # route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
             # 'right'}, num_steps).
-            origin, destination, route, priority = self.config.getNextCarTrip(car.car_id)
+            origin, destination, route, priority = self.config.getNextCarTrip(round_id, car.car_id)
 
             # Determine the queue number of the car. This number is greater than 0 if there are already cars at this
             # location.
@@ -107,11 +118,16 @@ class GameState:
         self.num_cars_travelling = len(cars)
 
     def updateState(self):
+        '''
+        Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
+        simulation.
+        '''
         # Increment the total weighted travel time and remove all the arrived cars from self.cars.
         travelling_cars = []
         for car in self.cars:
             if not car.hasArrived():
-                self.total_cost += car.priority + self.fixed_cost
+                car_cost = car.priority + self.fixed_cost
+                self.total_cost += car_cost
                 travelling_cars.append(car)
         self.cars = travelling_cars
 
@@ -201,11 +217,13 @@ class GameState:
             car.updatePosition(next_position)
             self.board[next_position[0]][next_position[1]] += 1
 
-        # Update number of cars travelling.
+        # Update number of cars travelling and update self.cost_board to reflect the total cost of cars at each
+        # location in the board.
         self.num_cars_travelling = 0
         for car in self.cars:
             if not car.hasArrived():
                 self.num_cars_travelling += 1
+                self.cost_board[car.position[0]][car.position[1]] += car.priority + self.fixed_cost
 
     def isEnd(self):
         return self.num_cars_travelling == 0

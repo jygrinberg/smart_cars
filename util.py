@@ -30,3 +30,4 @@ def plotVariableVsCost(variables, costs, variable_name, filename):
     plt.legend()
     plt.xlim(xmin=variables[0])
     plt.savefig(getOutfilePathname(filename))
+    print('Saved file: %s' % filename)

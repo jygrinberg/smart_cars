@@ -8,11 +8,16 @@ class Configurer:
         self.width = None
         self.height = None
         self._car_trips = []
+        self.random_seed = None
 
-    def configWithArgs(self, num_cars, num_roads):
+    def configWithArgs(self, num_cars, num_roads, random_seed):
         self.config_from_file = False
         self.num_cars = num_cars
         self.num_roads = num_roads
+
+        if random_seed >= 0:
+            print 'Setting random seed to %d.' % random_seed
+            self.random_seed = random_seed
 
         # Important! Might need to multiply by 4 instead of 2 if using getRandomTurnRoute() instead of getRandomRoute().
         self.width = self.num_roads * 2 + 1
@@ -63,12 +68,23 @@ class Configurer:
                     raise Exception('Side value in config file must be top, left, bottom, or right, but is: %s' % side)
                 self._car_trips.append((origin, destination, route, priority))
 
-    def getNextCarTrip(self, car_id):
+    def getNextCarTrip(self, round_id, car_id):
+        '''
+        Get the starting position, destination, route from origin to destination, and priority for the trip. The
+        route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
+        'right'}, num_steps).
+        :param round_id: ID number of the round (used for pseudo-random number generation).
+        :param car_id: ID number of the car (used for pseudo-random number generation).
+        :return: origin, destination, route, priority
+        '''
         if self.config_from_file:
             return self._car_trips[car_id]
 
+        # Set the random seed for pseudo-random number generation.
+        if self.random_seed is not None:
+            random.seed(self.random_seed + 43 * (car_id + 37 * round_id))
+
         # Generate a random route and pick a random priority in the range [0, 1].
-        random.seed(car_id)
         origin, destination, route = self._getRandomRoute()
         priority = random.choice([0, 1])
         return origin, destination, route, priority
