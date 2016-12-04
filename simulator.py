@@ -5,7 +5,7 @@ from configurer import *
 from animator import *
 import time
 import util
-
+from collections import deque
 
 class Simulator:
     def __init__(self, protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
@@ -103,6 +103,9 @@ class GameState:
         # Initialize the board storing the total cost at each (x,y) position in the board.
         self.cost_board = [[0] * self.config.height for _ in xrange(self.config.width)]
 
+        # Initialize the board storing queues of cars at each (x,y) position
+        self.queue_board = [[deque() for _ in xrange(self.config.height)] for _ in xrange(self.config.width)]
+
         # Initialize a trip for each car. Add each car to the board.
         self.cars = cars
         for car in self.cars:
@@ -115,6 +118,7 @@ class GameState:
             # location.
             rank = self.board[origin[0]][origin[1]]
             self.board[origin[0]][origin[1]] += 1
+            self.queue_board[origin[0]][origin[1]].append(car)
 
             # Initialize the trip.
             car.initTrip(origin, destination, route, priority, rank)

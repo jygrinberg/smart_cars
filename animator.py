@@ -23,7 +23,17 @@ class Animator:
         
     def _coord(self, road_id, object_offset=0):
         return self.offset + (self.step_size * road_id) + (object_offset / 2)
-    
+
+    def _createCar(self, row_id, col_id, cost_color):
+        car_width = 10
+        circle_car = True
+        if circle_car:
+            return self.canvas.create_oval(self._coord(row_id, -car_width), self._coord(col_id, -car_width),
+                                                self._coord(row_id, car_width), self._coord(col_id, car_width),
+                                                fill=cost_color, outline=cost_color, width=car_width)
+        return self.canvas.create_polygon(self._coord(row_id, -car_width), self._coord(col_id, -car_width),
+                                          self._coord(row_id, car_width), self._coord(col_id, car_width))
+
     def initAnimation(self):
         # Draw road network.
         for row_id in xrange(1, self.num_roads, 2):
@@ -46,14 +56,13 @@ class Animator:
                                         fill='black', width=dot_width)
         self.master.update()
 
-    def updateAnimation(self, board, cost_board):
+    def updateAnimation(self, board, cost_board, cars):
         '''
         Updates the canvas and displays the new state of the board for self.iteration_time seconds.
         :param board: List of lists, whose value at (x,y) represents the number of cars at that position.
         :param cost_board: List of lists, whose value at (x,y) represents the total cost of all cars at that position.
+        :param cars: List of car objects on the board.
         '''
-        car_width = 10
-
         # Remove existing cars.
         [self.canvas.delete(car) for car in self.cars]
         [self.canvas.delete(car_label) for car_label in self.car_labels]
@@ -65,9 +74,7 @@ class Animator:
                     continue
                 cost_color_value = int(min(1, float(cost_board[row_id][col_id]) / self.cost_cutoff) * 255)
                 cost_color = '#%02x%02x%02x' % (0, 0, cost_color_value)
-                car = self.canvas.create_oval(self._coord(row_id, -car_width), self._coord(col_id, -car_width),
-                                              self._coord(row_id, car_width), self._coord(col_id, car_width),
-                                              fill=cost_color, outline=cost_color, width=car_width)
+                car = self._createCar(row_id, col_id, cost_color)
                 car_label = self.canvas.create_text(self._coord(row_id), self._coord(col_id),
                                                     text='%d' % board[row_id][col_id], fill='white', justify=CENTER)
                 self.cars.add(car)
