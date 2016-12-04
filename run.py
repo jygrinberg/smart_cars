@@ -1,6 +1,22 @@
 #!/usr/bin/python
 """
-Main file for running the car simulation.
+Main file for running the car simulation. Some sample use cases are listed below:
+
+Basic usage:
+python run.py --num_cars=10 --num_roads=5 --num_rounds=10 --protocol=vcg --car=truthful
+
+Load a simulation configuration from a file:
+python run.py --config_filename=<path_to_file.txt> --num_rounds=10
+
+Generate a plot (either num_cars vs. total_cost, or num_roads vs. total_cost):
+python run.py --plot_road_simulations num_cars=10 --num_rounds=10 --protocol=vcg --car=truthful
+python run.py --plot_car_simulations num_roads=10 --num_rounds=10 --protocol=vcg --car=truthful
+
+Other flags that can be combined with any of the use cases listed above:
+--random_seed=<int value>
+--fixed_cost=<float in the range [0,1]>
+--unlimited_reward
+
 """
 
 import os
