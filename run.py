@@ -62,7 +62,7 @@ def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost, unlimited_reward
         for curr_num_roads in num_roads:
             config = Configurer()
             config.configWithArgs(num_cars, curr_num_roads, random_seed)
-            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, config)
+            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
@@ -82,7 +82,7 @@ def runAndPlotCarSimulations(num_roads, num_rounds, fixed_cost, unlimited_reward
         for curr_num_cars in num_cars:
             config = Configurer()
             config.configWithArgs(curr_num_cars, num_roads, random_seed)
-            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, config)
+            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
@@ -127,6 +127,8 @@ def getOptions():
                       help='generate a plot of num_cars vs. total cost')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='print the board after each iteration')
+    parser.add_option('-a', '--animate', dest='animate', action='store_true',
+                      help='display an animation of the simulation')
     parser.add_option('-u', '--unlimited_reward', dest='unlimited_reward', action='store_true',
                       help='initialize cars with infinite reward so they can bid 1.0 whenever desired')
     options, args = parser.parse_args()
@@ -165,7 +167,7 @@ def main():
 
         # Initialize the simulator.
         simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
-                              config)
+                              options.animate, config)
 
         # Run the simulation.
         simulator.run()

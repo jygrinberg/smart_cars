@@ -8,7 +8,7 @@ import util
 
 
 class Simulator:
-    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, config):
+    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
         """
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
         :param unlimited_reward: Initialize cars with infinite reward so that they can bid 1.0 whenever desired.
@@ -36,10 +36,13 @@ class Simulator:
             car = CarClass(car_id, self.protocol, unlimited_reward)
             self.cars.append(car)
 
-        self.animator = Animator(500, self.config.height, self.num_cars)
+        self.animator = None
+        if animate:
+            self.animator = Animator(500, self.config.height, self.num_cars)
 
     def run(self):
-        self.animator.initAnimation()
+        if self.animator:
+            self.animator.initAnimation()
 
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
@@ -49,7 +52,8 @@ class Simulator:
             # Initialize the state.
             game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id)
             game.printState(round_id, 0)
-            self.animator.updateAnimation(game.board, game.cost_board)
+            if self.animator:
+                self.animator.updateAnimation(game.board, game.cost_board)
 
             # Simulate the round until all cars reach their destinations.
             iteration_id = 0
@@ -57,7 +61,8 @@ class Simulator:
                 game.updateState()
                 iteration_id += 1
                 game.printState(round_id, iteration_id)
-                self.animator.updateAnimation(game.board, game.cost_board)
+                if self.animator:
+                    self.animator.updateAnimation(game.board, game.cost_board)
                 round_costs.append(game.getTotalCost())
                 round_rewards.append(self.protocol.getTotalReward(self.num_cars))
 
@@ -65,7 +70,8 @@ class Simulator:
             self.simulation_costs.append(round_costs)
             self.simulation_rewards.append(round_rewards)
             game.printState(round_id, iteration_id)
-            self.animator.updateAnimation(game.board, game.cost_board)
+            if self.animator:
+                self.animator.updateAnimation(game.board, game.cost_board)
             print('Round %d\tTotal reward = %f\tTotal cost = %f' % (round_id, self.simulation_rewards[-1][-1],
                                                                     self.simulation_costs[-1][-1]))
         print('TOTAL MEAN COST: %f' % self.getMeanCost())
