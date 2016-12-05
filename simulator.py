@@ -38,7 +38,7 @@ class Simulator:
 
         self.animator = None
         if animate:
-            self.animator = Animator(500, self.config.height, self.num_cars)
+            self.animator = Animator(500, self.config.height, self.num_cars, self.fixed_cost)
 
     def run(self):
         if self.animator:
@@ -53,7 +53,7 @@ class Simulator:
             game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id)
             game.printState(round_id, 0)
             if self.animator:
-                self.animator.updateAnimation(game.board, game.cost_board)
+                self.animator.initRound(game.board, game.cost_board)
 
             # Simulate the round until all cars reach their destinations.
             iteration_id = 0
@@ -62,7 +62,7 @@ class Simulator:
                 iteration_id += 1
                 game.printState(round_id, iteration_id)
                 if self.animator:
-                    self.animator.updateAnimation(game.board, game.cost_board)
+                    self.animator.updateAnimation(game.board, game.cost_board, game.win_next_positions)
                 round_costs.append(game.getTotalCost())
                 round_rewards.append(self.protocol.getTotalReward(self.num_cars))
 
@@ -70,8 +70,6 @@ class Simulator:
             self.simulation_costs.append(round_costs)
             self.simulation_rewards.append(round_rewards)
             game.printState(round_id, iteration_id)
-            if self.animator:
-                self.animator.updateAnimation(game.board, game.cost_board)
             print('Round %d\tTotal reward = %f\tTotal cost = %f' % (round_id, self.simulation_rewards[-1][-1],
                                                                     self.simulation_costs[-1][-1]))
         print('TOTAL MEAN COST: %f' % self.getMeanCost())
@@ -103,6 +101,10 @@ class GameState:
         # Initialize the board storing the total cost at each (x,y) position in the board.
         self.cost_board = [[0] * self.config.height for _ in xrange(self.config.width)]
 
+        # List of tuples of the form (win_position, next_position), where win_position is a position that won in the
+        # latest iteration, and next_position is the position to which the car there moved.
+        self.win_next_positions = []
+
         # Initialize a trip for each car. Add each car to the board.
         self.cars = cars
         for car in self.cars:
@@ -111,11 +113,12 @@ class GameState:
             # 'right'}, num_steps).
             origin, destination, route, priority = self.config.getNextCarTrip(round_id, car.car_id)
 
-            # Add the car to the board.
-            self.board[origin[0]][origin[1]].append(car)
-
             # Initialize the car's trip.
             car.initTrip(origin, destination, route, priority)
+
+            # Add the car to the board.
+            self.board[origin[0]][origin[1]].append(car)
+            self.cost_board[origin[0]][origin[1]] += self.fixed_cost + car.priority
 
         # Initialize the total cost, and number of cars not yet arrived.
         self.total_cost = 0.0
@@ -124,7 +127,7 @@ class GameState:
     def updateState(self):
         '''
         Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
-        simulation.
+        simulation. Also updates self.win_next_positions with a list of (win_position, next_position) tuples.
         '''
         # Increment the total weighted travel time and remove all the arrived cars from self.cars.
         travelling_cars = []
@@ -197,12 +200,14 @@ class GameState:
                                               actions_list[0], position_1, actions_list[1])
 
         # Move the cars that are first in the queues in the winning positions. Inform these cars of their new positions.
-        moving_cars = {}
+        # Also, populate win_next_positions.
+        self.win_next_positions = []
         for position in win_positions:
             moving_car = self.board[position[0]][position[1]].popleft()
             next_position = car_next_positions[moving_car.car_id]
             moving_car.updatePosition(next_position)
             self.board[next_position[0]][next_position[1]].append(moving_car)
+            self.win_next_positions.append((position, next_position))
 
         # Update number of cars travelling and update self.cost_board to reflect the total cost of cars at each
         # location in the board.

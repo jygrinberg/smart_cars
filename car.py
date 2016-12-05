@@ -26,6 +26,7 @@ class Car:
         self.position = None
         self.route = None
         self.destination = None
+        self.direction = None
         self.protocol = protocol
         self.unlimited_reward = unlimited_reward
 
@@ -34,6 +35,7 @@ class Car:
         self.destination = destination
         self.route = route
         self.priority = priority
+        self.direction = route[0][0]
 
     def getNextPosition(self):
         if len(self.route) == 0:
@@ -54,6 +56,10 @@ class Car:
             if self.route[0][1] == 0:
                 # The current direction is completed, so remove it.
                 self.route = self.route[1:]
+
+                # Update the direction, if there is a new one.
+                if len(self.route) > 0:
+                    self.direction = self.route[0][0]
 
         # Update the position.
         self.position = position
