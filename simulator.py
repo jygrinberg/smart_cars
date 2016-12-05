@@ -97,14 +97,11 @@ class GameState:
         self.fixed_cost = fixed_cost
         self.config = config
 
-        # Initialize the board, which stores the number of cars at each (x,y) position.
-        self.board = [[0] * self.config.height for _ in xrange(self.config.width)]
+        # Initialize the board, which stores queues of cars at each (x,y) position
+        self.board = [[deque() for _ in xrange(self.config.height)] for _ in xrange(self.config.width)]
 
         # Initialize the board storing the total cost at each (x,y) position in the board.
         self.cost_board = [[0] * self.config.height for _ in xrange(self.config.width)]
-
-        # Initialize the board storing queues of cars at each (x,y) position
-        self.queue_board = [[deque() for _ in xrange(self.config.height)] for _ in xrange(self.config.width)]
 
         # Initialize a trip for each car. Add each car to the board.
         self.cars = cars
@@ -114,14 +111,11 @@ class GameState:
             # 'right'}, num_steps).
             origin, destination, route, priority = self.config.getNextCarTrip(round_id, car.car_id)
 
-            # Determine the queue number of the car. This number is greater than 0 if there are already cars at this
-            # location.
-            rank = self.board[origin[0]][origin[1]]
-            self.board[origin[0]][origin[1]] += 1
-            self.queue_board[origin[0]][origin[1]].append(car)
+            # Add the car to the board.
+            self.board[origin[0]][origin[1]].append(car)
 
-            # Initialize the trip.
-            car.initTrip(origin, destination, route, priority, rank)
+            # Initialize the car's trip.
+            car.initTrip(origin, destination, route, priority)
 
         # Initialize the total cost, and number of cars not yet arrived.
         self.total_cost = 0.0
@@ -202,30 +196,13 @@ class GameState:
                 self.protocol.updateCarReward(car.car_id, car.position, win_position, actions[car.car_id], position_0,
                                               actions_list[0], position_1, actions_list[1])
 
-        # Update the car ranks. moving_cars is a dictionary. Key is next_position. Value is the car_id that will move.
+        # Move the cars that are first in the queues in the winning positions. Inform these cars of their new positions.
         moving_cars = {}
-        for car in self.cars:
-            if car.position in win_positions:
-                # Car is in a winning position.
-                if car.rank == 0:
-                    # Car is first in the queue, so it moves forward. Append this car to next_position's queue.
-                    next_position = car_next_positions[car.car_id]
-                    moving_cars[next_position] = car
-                    if next_position not in win_positions:
-                        # The next position is a losing position, so the queue will get longer by 1.
-                        car.rank = self.board[next_position[0]][next_position[1]]
-                    else:
-                        # The next position is a winning position, so the queue will remain the same length.
-                        car.rank = self.board[next_position[0]][next_position[1]] - 1
-                else:
-                    # Car is not first in the queue, so it gets bumped up by 1.
-                    car.rank -= 1
-
-        # Inform cars that will move of their new positions, and update the board accordingly.
-        for next_position, car in moving_cars.iteritems():
-            self.board[car.position[0]][car.position[1]] -= 1
-            car.updatePosition(next_position)
-            self.board[next_position[0]][next_position[1]] += 1
+        for position in win_positions:
+            moving_car = self.board[position[0]][position[1]].popleft()
+            next_position = car_next_positions[moving_car.car_id]
+            moving_car.updatePosition(next_position)
+            self.board[next_position[0]][next_position[1]].append(moving_car)
 
         # Update number of cars travelling and update self.cost_board to reflect the total cost of cars at each
         # location in the board.
@@ -258,7 +235,7 @@ class GameState:
                     print('  ', end='')
 
                 for x in xrange(self.config.width):
-                    count = self.board[x][y]
+                    count = len(self.board[x][y])
                     if x % 2 == 0 and y % 2 == 0:
                         count_string = ' '
                     elif count == 0:

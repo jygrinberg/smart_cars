@@ -24,18 +24,16 @@ class Car:
         self.car_id = car_id
         self.priority = None
         self.position = None
-        self.rank = None
         self.route = None
         self.destination = None
         self.protocol = protocol
         self.unlimited_reward = unlimited_reward
 
-    def initTrip(self, origin, destination, route, priority, rank):
+    def initTrip(self, origin, destination, route, priority):
         self.position = origin
         self.destination = destination
         self.route = route
         self.priority = priority
-        self.rank = rank
 
     def getNextPosition(self):
         if len(self.route) == 0:

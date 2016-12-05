@@ -56,12 +56,11 @@ class Animator:
                                         fill='black', width=dot_width)
         self.master.update()
 
-    def updateAnimation(self, board, cost_board, cars):
+    def updateAnimation(self, board, cost_board):
         '''
         Updates the canvas and displays the new state of the board for self.iteration_time seconds.
-        :param board: List of lists, whose value at (x,y) represents the number of cars at that position.
+        :param board: List of lists of queues. The queue at (x,y) represents the queue of cars at that position.
         :param cost_board: List of lists, whose value at (x,y) represents the total cost of all cars at that position.
-        :param cars: List of car objects on the board.
         '''
         # Remove existing cars.
         [self.canvas.delete(car) for car in self.cars]
@@ -70,13 +69,14 @@ class Animator:
         # Add new cars.
         for row_id in xrange(self.num_roads):
             for col_id in xrange(self.num_roads):
-                if board[row_id][col_id] == 0:
+                if len(board[row_id][col_id]) == 0:
                     continue
                 cost_color_value = int(min(1, float(cost_board[row_id][col_id]) / self.cost_cutoff) * 255)
                 cost_color = '#%02x%02x%02x' % (0, 0, cost_color_value)
                 car = self._createCar(row_id, col_id, cost_color)
                 car_label = self.canvas.create_text(self._coord(row_id), self._coord(col_id),
-                                                    text='%d' % board[row_id][col_id], fill='white', justify=CENTER)
+                                                    text='%d' % len(board[row_id][col_id]), fill='white',
+                                                    justify=CENTER)
                 self.cars.add(car)
                 self.car_labels.add(car_label)
 
