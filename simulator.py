@@ -8,7 +8,7 @@ import util
 from collections import deque
 
 class Simulator:
-    def __init__(self, protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
+    def __init__(self, protocol, CarClass, MyCarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
         """
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
         :param unlimited_reward: Initialize cars with infinite reward so that they can bid 1.0 whenever desired.
@@ -24,23 +24,32 @@ class Simulator:
         self.protocol.setSimulationParams(self.fixed_cost, self.num_cars, unlimited_reward,
                                           self.config.high_priority_probability)
 
-        # Store the total cost and reward for the simulation.
-        # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round
-        #   i.
-        # * simulation_rewards is a list of lists, where the element at index (i, j) is the total reward at iteration
-        #   j in round i.
+        # Store cost and reward stats from the simulation.
+        # * simulation_costs is a list of the total cost per round.
+        # * simulation_rewards is a list of the total reward per round.
+        # * my_car_costs is a list of my_car's cost per round.
+        # * my_car_rewards is a list of my_car's reward per round.
         self.simulation_costs = []
         self.simulation_rewards = []
+        self.my_car_costs = []
+        self.my_car_rewards = []
 
-        # Initialize the cars.
+        # Initialize the cars. If MyCarClass is not None, make one of the cars MyCarClass.
         self.cars = []
-        for car_id in xrange(self.num_cars):
+        self.my_car = None
+        num_car_class = self.num_cars
+        if MyCarClass is not None:
+            num_car_class -= 1
+            self.my_car = MyCarClass(self.num_cars - 1, self.protocol)
+            self.cars.append(self.my_car)
+        for car_id in xrange(num_car_class):
             car = CarClass(car_id, self.protocol)
             self.cars.append(car)
+        random.shuffle(self.cars)
 
         self.animator = None
         if animate:
-            self.animator = Animator(500, self.config.height, self.num_cars, self.fixed_cost)
+            self.animator = Animator(500, self.config.height, self.num_cars, self.fixed_cost, self.my_car)
 
     def run(self):
         if self.animator:
@@ -48,11 +57,8 @@ class Simulator:
 
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
-            round_costs = [0.0]
-            round_rewards = [0.0]
-
             # Initialize the game.
-            game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id)
+            game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id, self.my_car)
             game.printState(round_id, 0)
             if self.animator:
                 self.animator.initRound(game.board, game.cost_board, round_id, 0)
@@ -65,26 +71,46 @@ class Simulator:
                 game.printState(round_id, iteration_id)
                 if self.animator:
                     self.animator.updateAnimation(game.board, game.cost_board, game.win_next_positions, round_id,
-                                                  iteration_id, game.getTotalCost())
-                round_costs.append(game.getTotalCost())
-                round_rewards.append(self.protocol.getTotalReward(self.num_cars))
+                                                  iteration_id, game.total_cost)
 
-            # Update the total cost.
-            self.simulation_costs.append(round_costs)
-            self.simulation_rewards.append(round_rewards)
+            # Keep track of stats from the round.
+            self.simulation_costs.append(game.total_cost)
+            self.simulation_rewards.append(self.protocol.getTotalReward(self.num_cars))
+            if self.my_car is not None:
+                self.my_car_costs.append(game.my_car_cost)
+                self.my_car_rewards.append(self.protocol.getCarReward(self.my_car.car_id))
+
             game.printState(round_id, iteration_id)
-            print('Round %d\tTotal reward = %f\tTotal cost = %f' % (round_id, self.simulation_rewards[-1][-1],
-                                                                    self.simulation_costs[-1][-1]))
-        print('TOTAL MEAN COST: %f' % self.getMeanCost())
-
-    def getCosts(self):
-        return self.simulation_costs
+            print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
+                                                                        self.simulation_costs[-1]))
+            if self.my_car is not None:
+                print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1], self.my_car_costs[-1]))
+        print('TOTAL MEAN COST: %.3f\tTOTAL MEAN COST PER CAR: %.3f\tMY CAR COST: %.3f' %
+              (self.getMeanCost(), self.getMeanCost() / self.num_cars, self.getMyCarMeanCost()))
 
     def getMeanCost(self):
-        return sum([costs[-1] for costs in self.simulation_costs]) / float(len(self.simulation_costs))
+        '''
+        Returns the total mean cost of all cars over all the rounds.
+        '''
+        return sum(self.simulation_costs) / float(self.num_rounds)
 
-    def getRewards(self):
-        return self.simulation_rewards
+    def getMeanReward(self):
+        '''
+        Returns the total mean reward of all cars over all the rounds.
+        '''
+        return sum(self.simulation_rewards) / float(self.num_rounds)
+
+    def getMyCarMeanCost(self):
+        '''
+        Returns the mean cost of my_car over all the rounds.
+        '''
+        return sum(self.my_car_costs) / float(self.num_rounds)
+
+    def getMyCarMeanReward(self):
+        '''
+        Returns the mean reward of my_car over all the rounds.
+        '''
+        return sum(self.my_car_rewards) / float(self.num_rounds)
 
 
 class GameState:
@@ -93,10 +119,11 @@ class GameState:
     Street ids 3, 7, 11, etc. go up/left.
     """
 
-    def __init__(self, cars, protocol, fixed_cost, config, round_id):
+    def __init__(self, cars, protocol, fixed_cost, config, round_id, my_car):
         self.protocol = protocol
         self.fixed_cost = fixed_cost
         self.config = config
+        self.my_car = my_car
 
         # Initialize the board, which stores queues of cars at each (x,y) position
         self.board = [[deque() for _ in xrange(self.config.height)] for _ in xrange(self.config.width)]
@@ -125,6 +152,7 @@ class GameState:
 
         # Initialize the total cost, and number of cars not yet arrived.
         self.total_cost = 0.0
+        self.my_car_cost = 0.0
         self.num_cars_travelling = len(cars)
 
         # Call the protocol functions that need to be called if the protocol involves fixed actions per round.
@@ -146,6 +174,8 @@ class GameState:
                 self.total_cost += car_cost
                 travelling_cars.append(car)
         self.cars = travelling_cars
+        if self.my_car is not None and not self.my_car.hasArrived():
+            self.my_car_cost += self.my_car.priority + self.fixed_cost
 
         # Determine the next position to which each car would *like* to move.
         # * next_positions is a dictionary. Key is next_position. Value is a set of car_ids wanting to move there.
@@ -232,9 +262,6 @@ class GameState:
 
     def isEnd(self):
         return self.num_cars_travelling == 0
-
-    def getTotalCost(self):
-        return self.total_cost
 
     def printState(self, round_id, iteration_id):
         if util.VERBOSE:

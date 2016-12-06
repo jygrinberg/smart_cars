@@ -62,12 +62,14 @@ def runAndPlotRoadSimulations(options):
     for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
         protocol = getProtocol(context['protocol'])
         CarClass = getCarClass(context['car'])
+        MyCarClass = None
         curr_costs = []
         for curr_num_roads in num_roads:
             config = Configurer()
             config.configWithArgs(options.num_cars, curr_num_roads, options.random_seed,
                                   options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
+                                  options.unlimited_reward,
                                   False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
@@ -85,12 +87,14 @@ def runAndPlotCarSimulations(options):
     for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
         protocol = getProtocol(context['protocol'])
         CarClass = getCarClass(context['car'])
+        MyCarClass = None
         curr_costs = []
         for curr_num_cars in num_cars:
             config = Configurer()
             config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
                                   options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+            simulator = Simulator(protocol, CarClass, MyCarclass, options.num_rounds, options.fixed_cost,
+                                  options.unlimited_reward,
                                   False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
@@ -118,7 +122,9 @@ def getOptions():
     parser.add_option('-p', '--protocol', dest='protocol',
                       help='name of the protocol to use: random, vcg')
     parser.add_option('-c', '--car', dest='car_class_name',
-                      help='name of the car to use: random, truthful')
+                      help='name of the car to use: random, truthful, greedy')
+    parser.add_option('-m', '--my_car', dest='my_car_class_name',
+                      help='name of the car to use for agent under investigation: random, truthful, greedy')
     parser.add_option('--num_cars', dest='num_cars', type='int', default=100,
                       help='number of cars on the road')
     parser.add_option('--num_rounds', dest='num_rounds', type='int', default=10,
@@ -166,6 +172,9 @@ def main():
         # Get the protocol and car specified by the command line arguments.
         protocol = getProtocol(options.protocol)
         CarClass = getCarClass(options.car_class_name)
+        MyCarClass = None
+        if options.my_car_class_name:
+            MyCarClass = getCarClass(options.my_car_class_name)
 
         # Set up the configurer, which can configure the simulation from a config file, or from command line args and
         # randomly generated car routes.
@@ -177,8 +186,8 @@ def main():
                                   options.high_priority_probability)
 
         # Initialize the simulator.
-        simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
-                              options.animate, config)
+        simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
+                              options.unlimited_reward, options.animate, config)
 
         # Run the simulation.
         simulator.run()

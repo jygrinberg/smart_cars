@@ -3,9 +3,10 @@ import time
 import copy
 
 class Animator:
-    def __init__(self, size, num_roads, num_cars, fixed_cost):
+    def __init__(self, size, num_roads, num_cars, fixed_cost, my_car):
         self.num_roads = num_roads
         self.fixed_cost = fixed_cost
+        self.my_car = my_car
 
         # Determine the max expected cost of a queue at any given position. This is a very rough approximation.
         self.cost_cutoff = max(num_cars / num_roads, 1)
@@ -72,22 +73,29 @@ class Animator:
         direction = car_queue[0].direction
         car_size = 40 # min(1, float(cost) / self.cost_cutoff) * 30 + 30
         if direction == 'up':
-            return self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, car_size),
+            polygon = self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, 0), self._coord(col_id, -car_size), fill=cost_color)
         elif direction == 'down':
-            return self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, -car_size),
+            polygon = self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, -car_size),
                                               self._coord(row_id, car_size), self._coord(col_id, -car_size),
                                               self._coord(row_id, 0), self._coord(col_id, car_size), fill=cost_color)
         elif direction == 'right':
-            return self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, -car_size),
+            polygon = self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, -car_size),
                                               self._coord(row_id, -car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, car_size), self._coord(col_id, 0), fill=cost_color)
         else:
-            return self.canvas.create_polygon(self._coord(row_id, car_size), self._coord(col_id, -car_size),
+            polygon = self.canvas.create_polygon(self._coord(row_id, car_size), self._coord(col_id, -car_size),
                                               self._coord(row_id, car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, -car_size), self._coord(col_id, 0), fill=cost_color)
-        
+
+        # Make my_car look special.
+        if self.my_car is not None and self.my_car.position is not None and \
+                        self.my_car.position[0] == row_id and self.my_car.position[1] == col_id:
+            self.canvas.itemconfig(polygon, fill='red')
+
+        return polygon
+
     def initAnimation(self, protocol_name, car_class_name):
         # Draw road network.
         for row_id in xrange(1, self.num_roads, 2):
