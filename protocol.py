@@ -3,6 +3,11 @@ import random
 
 
 class Protocol(object):
+    '''
+    If self.fixed_actions_per_round is True, then the functions initRound() and setCarRoundAction() are called at the
+    beginning of each round, and getCarRoundAction() is called instead of calling the car's getAction() when determining
+    cars' actions at each conflict.
+    '''
     __metaclass__ = ABCMeta
 
     def __init__(self):
