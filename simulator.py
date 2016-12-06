@@ -85,7 +85,8 @@ class Simulator:
                 print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
                                                                             self.simulation_costs[-1]))
                 if self.my_car is not None:
-                    print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1], self.my_car_costs[-1]))
+                    print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1],
+                                                                          self.my_car_costs[-1]))
         if self.num_cars == 0:
             return
         print('TOTAL MEAN COST: %.3f\tTOTAL MEAN COST PER CAR: %.3f\tMY CAR COST: %.3f' %
@@ -268,6 +269,8 @@ class GameState:
         return self.num_cars_travelling == 0
 
     def printState(self, round_id, iteration_id):
+        if util.VERBOSE:
+            return
         if util.VERBOSE:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')
