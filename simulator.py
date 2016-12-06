@@ -21,7 +21,8 @@ class Simulator:
         self.num_cars = self.config.num_cars
         self.num_roads = self.config.num_roads
 
-        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars, unlimited_reward)
+        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars, unlimited_reward,
+                                          self.config.high_priority_probability)
 
         # Store the total cost and reward for the simulation.
         # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round

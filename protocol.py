@@ -16,6 +16,7 @@ class Protocol(object):
         self.initial_reward = 0.0
         self.unlimited_reward = False
         self.fixed_actions_per_round = False
+        self.high_priority_probability = None
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -51,15 +52,17 @@ class Protocol(object):
     def __str__(self):
         pass
 
-    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward):
+    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
         """
         Set parameters specific to the simulation.
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
         :param number of cars in the simulation.
-        :param unlimited_reward: If true, cars are allowed to bid 1 whenever they wayn.
+        :param unlimited_reward: If true, cars are allowed to bid 1 whenever they win.
+        :param high_priority_probability: Probability a car's priority will be high.
         """
         self.fixed_cost = fixed_cost
         self.unlimited_reward = unlimited_reward
+        self.high_priority_probability = high_priority_probability
 
         # Initialize a map from car_id to the car's reward.
         for car_id in xrange(num_cars):
@@ -292,10 +295,15 @@ class ButtonProtocol(Protocol):
         self.fixed_actions_per_round = True
 
         # Number of rounds car has to wait after it bids 1 until it can bid 1 again.
-        self.num_rounds_latency = 3
+        self.num_rounds_latency = None
 
         # Initialize a dictionary. Key is car_id. Value is the car's action for the round.
         self.car_round_actions = {}
+
+    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
+        super(ButtonProtocol, self).setSimulationParams(fixed_cost, num_cars, unlimited_reward,
+                                                        high_priority_probability)
+        self.num_rounds_latency = int(1 / self.high_priority_probability)
 
     def initRound(self, round_id):
         self.car_round_actions.clear()
@@ -306,7 +314,9 @@ class ButtonProtocol(Protocol):
     def setCarRoundAction(self, car_id, action):
         self.car_round_actions[car_id] = action
         if action == 1:
-            self.rewards[car_id] = -self.num_rounds_latency
+            # Reset the reward to -self.num_rounds_latency + 1 so that the car will be able to bid high again in another
+            # self.num_rounds_latency rounds.
+            self.rewards[car_id] = -self.num_rounds_latency + 1
 
     def getCarRoundAction(self, car_id):
         if car_id not in self.car_round_actions:
