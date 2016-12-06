@@ -103,6 +103,29 @@ def runAndPlotCarSimulations(options):
                             'cars_vs_cost_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
                                                                 options.fixed_cost))
 
+def runAndPlotCheatingCarSimulations(options):
+    min_num_cars = 0
+    max_num_cars = 1000
+    num_cars_delta = 100
+    rewards = {}
+    num_cars = xrange(min_num_cars, max_num_cars + 1, num_cars_delta)
+    for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
+        protocol = getProtocol(context['protocol'])
+        CarClass = getCarClass(context['car'])
+        curr_rewards = []
+        for curr_num_cars in num_cars:
+            config = Configurer()
+            config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
+                                  options.high_priority_probability)
+            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+                                  False, config)
+            simulator.run()
+            curr_rewards.append(simulator.getMyCarMeanReward())
+        rewards[context['protocol']] = curr_rewards
+    util.plotVariableVsCost(num_cars, rewards, 'Cars',
+                            'cars_vs_rewards_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
+                                                                options.fixed_cost))
+
 def setRandomSeed(random_seed):
     """
     Sets a seed for the random module and numpy module, if the provided seed is non-negative.
@@ -141,6 +164,8 @@ def getOptions():
                       help='generate a plot of num_roads vs. total cost')
     parser.add_option('--plot_car_simulations', dest='plot_car_simulations', action='store_true',
                       help='generate a plot of num_cars vs. total cost')
+    parser.add_option('--plot_cheating_car_simulations', dest='plot_cheating_car_simulations', action='store_true',
+                      help='generate a plot of num_cars vs. total rewards of cheating car')
     parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
                       help='seed to use a pseud-random generator')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
@@ -168,6 +193,8 @@ def main():
         runAndPlotRoadSimulations(options)
     elif options.plot_car_simulations:
         runAndPlotCarSimulations(options)
+    elif options.plot_cheating_car_simulations:
+        runAndPlotCheatingCarSimulations(options)
     else:
         # Get the protocol and car specified by the command line arguments.
         protocol = getProtocol(options.protocol)
