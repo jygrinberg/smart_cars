@@ -14,6 +14,7 @@ class Protocol(object):
         self.rewards = {}
         self.fixed_cost = None
         self.initial_reward = 0.0
+        self.unlimited_reward = False
         self.fixed_actions_per_round = False
 
     @abstractmethod
@@ -50,14 +51,15 @@ class Protocol(object):
     def __str__(self):
         pass
 
-    def setSimulationParams(self, fixed_cost, num_cars):
+    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward):
         """
         Set parameters specific to the simulation.
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
-        :param number of cars in the simulation:
-        :return:
+        :param number of cars in the simulation.
+        :param unlimited_reward: If true, cars are allowed to bid 1 whenever they wayn.
         """
         self.fixed_cost = fixed_cost
+        self.unlimited_reward = unlimited_reward
 
         # Initialize a map from car_id to the car's reward.
         for car_id in xrange(num_cars):
@@ -83,6 +85,14 @@ class Protocol(object):
         :return:
         """
         pass
+
+    def canCarBidHigh(self, car_id):
+        """
+        Returns true if car_id has enough reward to bid high.
+        :param car_id: Car for which to return true or false.
+        :return: True or False.
+        """
+        return self.unlimited_reward or self.rewards[car_id] > 0
 
     def getCarReward(self, car_id):
         """

@@ -21,7 +21,7 @@ class Simulator:
         self.num_cars = self.config.num_cars
         self.num_roads = self.config.num_roads
 
-        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars)
+        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars, unlimited_reward)
 
         # Store the total cost and reward for the simulation.
         # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round
@@ -34,7 +34,7 @@ class Simulator:
         # Initialize the cars.
         self.cars = []
         for car_id in xrange(self.num_cars):
-            car = CarClass(car_id, self.protocol, unlimited_reward)
+            car = CarClass(car_id, self.protocol)
             self.cars.append(car)
 
         self.animator = None

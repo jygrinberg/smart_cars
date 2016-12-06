@@ -16,7 +16,6 @@ class Configurer:
         self.num_roads = num_roads
 
         if random_seed >= 0:
-            print 'Setting random seed to %d.' % random_seed
             self.random_seed = random_seed
 
         # Important! Might need to multiply by 4 instead of 2 if using getRandomTurnRoute() instead of getRandomRoute().
