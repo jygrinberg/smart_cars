@@ -86,6 +86,9 @@ class Simulator:
     def getRewards(self):
         return self.simulation_rewards
 
+    def getMeanRewards(self):
+    return sum([rewards[-1] for rewards in self.simulation_rewards]) / float(len(self.simulation_rewards))
+
 
 class GameState:
     """
