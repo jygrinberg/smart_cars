@@ -80,7 +80,7 @@ class Simulator:
                 self.my_car_rewards.append(self.protocol.getCarReward(self.my_car.car_id))
 
             game.printState(round_id, iteration_id)
-            
+
             if util.VERBOSE:
                 print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
                                                                             self.simulation_costs[-1]))
