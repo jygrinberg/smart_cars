@@ -16,11 +16,12 @@ class Simulator:
         self.protocol = protocol
         self.num_rounds = num_rounds
         self.fixed_cost = fixed_cost
-        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars)
 
         self.config = config
         self.num_cars = self.config.num_cars
         self.num_roads = self.config.num_roads
+
+        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars)
 
         # Store the total cost and reward for the simulation.
         # * simulation_costs is a list of lists, where the element at index (i, j) is the cost at iteration j in round
@@ -54,9 +55,6 @@ class Simulator:
             game.printState(round_id, 0)
             if self.animator:
                 self.animator.initRound(game.board, game.cost_board, round_id, 0)
-
-            # Initialize the protocol.
-            self.protocol.initRound()
 
             # Simulate the round until all cars reach their destinations.
             iteration_id = 0
@@ -128,6 +126,12 @@ class GameState:
         self.total_cost = 0.0
         self.num_cars_travelling = len(cars)
 
+        # Call the protocol functions that need to be called if the protocol involves fixed actions per round.
+        if self.protocol.fixed_actions_per_round:
+            self.protocol.initRound(round_id)
+            for car in self.cars:
+                self.protocol.setCarRoundAction(car.car_id, car.getAction(car.position, 1, None, 0))
+
     def updateState(self):
         '''
         Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
@@ -181,10 +185,14 @@ class GameState:
             # Get each car's action (i.e. move forward, if possible, or agree not to move).
             # * actions is a dictionary. Key is car_id. Value is the car's action.
             # * actions_list is a list of actions for each position.
+            # * actions_car_id_list is a list of car_ids for each position.
             actions = {}
             actions_list = [[], []]
             for car in cars:
-                action = car.getAction(position_0, num_cars[0], position_1, num_cars[1])
+                if self.protocol.fixed_actions_per_round:
+                    action = self.protocol.getCarRoundAction(car.car_id)
+                else:
+                    action = car.getAction(position_0, num_cars[0], position_1, num_cars[1])
                 actions[car.car_id] = action
                 if car.position == position_0:
                     actions_list[0].append(action)

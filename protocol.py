@@ -6,9 +6,10 @@ class Protocol(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        self.rewards = None
+        self.rewards = {}
         self.fixed_cost = None
         self.initial_reward = 0.0
+        self.fixed_actions_per_round = False
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -59,7 +60,21 @@ class Protocol(object):
 
     def initRound(self, round_id):
         """
-        This is called at the beginning of the round
+        This is called at the beginning of the round for each car.
+        :return:
+        """
+        pass
+
+    def setCarRoundAction(self, car_id, action):
+        """
+        This is called at the beginning of the round for each car.
+        :return:
+        """
+        pass
+
+    def getCarRoundAction(self, car_id):
+        """
+        This is called for each car involved with each conflict.
         :return:
         """
         pass
@@ -256,12 +271,30 @@ class ButtonProtocol(Protocol):
     """
     def __init__(self):
         super(ButtonProtocol, self).__init__()
-        self.first_iteration = True
+
+        self.fixed_actions_per_round = True
+
+        # Number of rounds car has to wait after it bids 1 until it can bid 1 again.
+        self.num_rounds_latency = 3
+
+        # Initialize a dictionary. Key is car_id. Value is the car's action for the round.
+        self.car_round_actions = {}
 
     def initRound(self, round_id):
-        self.first_iteration = True
+        self.car_round_actions.clear()
+
         for car_id in self.rewards:
             self.rewards[car_id] += 1
+
+    def setCarRoundAction(self, car_id, action):
+        self.car_round_actions[car_id] = action
+        if action == 1:
+            self.rewards[car_id] = -self.num_rounds_latency
+
+    def getCarRoundAction(self, car_id):
+        if car_id not in self.car_round_actions:
+            raise Exception('No action found for car_id=%d' % car_id)
+        return self.car_round_actions[car_id]
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
@@ -283,7 +316,7 @@ class ButtonProtocol(Protocol):
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         # Reward is only updated at the beginning of each round.
-        if self.first_iteration:
-            self.rewards[car_id] -= car_action
-            self.first_iteration = False
         return self.rewards[car_id]
+
+    def __str__(self):
+        return 'button'
