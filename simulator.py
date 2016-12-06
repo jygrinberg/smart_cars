@@ -113,9 +113,6 @@ class Simulator:
         '''
         return sum(self.my_car_rewards) / float(self.num_rounds)
 
-    def getMeanRewards(self):
-    return sum([rewards[-1] for rewards in self.simulation_rewards]) / float(len(self.simulation_rewards))
-
 
 class GameState:
     """
