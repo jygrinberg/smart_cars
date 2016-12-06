@@ -16,7 +16,7 @@ class Simulator:
         self.protocol = protocol
         self.num_rounds = num_rounds
         self.fixed_cost = fixed_cost
-        self.protocol.setSimulationParams(self.fixed_cost)
+        self.protocol.setSimulationParams(self.fixed_cost, self.num_cars)
 
         self.config = config
         self.num_cars = self.config.num_cars
@@ -42,18 +42,21 @@ class Simulator:
 
     def run(self):
         if self.animator:
-            self.animator.initAnimation()
+            self.animator.initAnimation(str(self.protocol), str(self.cars[0]))
 
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.num_rounds):
-            round_costs = [0]
-            round_rewards = [0]
+            round_costs = [0.0]
+            round_rewards = [0.0]
 
-            # Initialize the state.
+            # Initialize the game.
             game = GameState(self.cars, self.protocol, self.fixed_cost, self.config, round_id)
             game.printState(round_id, 0)
             if self.animator:
-                self.animator.initRound(game.board, game.cost_board)
+                self.animator.initRound(game.board, game.cost_board, round_id, 0)
+
+            # Initialize the protocol.
+            self.protocol.initRound()
 
             # Simulate the round until all cars reach their destinations.
             iteration_id = 0
@@ -62,7 +65,8 @@ class Simulator:
                 iteration_id += 1
                 game.printState(round_id, iteration_id)
                 if self.animator:
-                    self.animator.updateAnimation(game.board, game.cost_board, game.win_next_positions)
+                    self.animator.updateAnimation(game.board, game.cost_board, game.win_next_positions, round_id,
+                                                  iteration_id, game.getTotalCost())
                 round_costs.append(game.getTotalCost())
                 round_rewards.append(self.protocol.getTotalReward(self.num_cars))
 

@@ -36,6 +36,8 @@ def getProtocol(protocol_name):
         return RandomProtocol()
     if protocol_name == 'vcg':
         return VCGProtocol()
+    if protocol_name == 'button':
+        return ButtonProtocol()
     return None
 
 def getCarClass(car_class_name):
@@ -47,6 +49,8 @@ def getCarClass(car_class_name):
         return RandomCar
     if car_class_name == 'truthful':
         return TruthfulCar
+    if car_class_name == 'aggressive':
+        return AggressiveCar
     return None
 
 def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost, unlimited_reward, random_seed):

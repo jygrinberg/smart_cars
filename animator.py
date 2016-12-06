@@ -10,12 +10,19 @@ class Animator:
         # Determine the max expected cost of a queue at any given position. This is a very rough approximation.
         self.cost_cutoff = max(num_cars / num_roads, 1)
 
-        self.master = Tk()
-        self.canvas = Canvas(self.master, width=size, height=size)
-        self.canvas.pack()
-
         self.offset = 20
         self.step_size = (size - 2 * self.offset) / (self.num_roads - 1)
+
+        self.board_width = size
+        self.board_height = size
+
+        self.stats_width = 200
+        self.canvas_width = self.board_width + self.stats_width
+        self.canvas_height = self.board_height
+
+        self.master = Tk()
+        self.canvas = Canvas(self.master, width=self.canvas_width, height=self.canvas_height)
+        self.canvas.pack()
 
         self.iteration_time = 0.1
 
@@ -23,12 +30,34 @@ class Animator:
         self.car_labels = [[None] * self.num_roads for _ in xrange(self.num_roads)]
         self.prev_board = None
 
+        self.stats_round_id = None
+        self.stats_iteration_id = None
+        self.stats_total_cost = None
+
+    def _updateStats(self, round_id, iteration_id, total_cost):
+        # Remove old stats.
+        self.canvas.delete(self.stats_round_id)
+        self.canvas.delete(self.stats_iteration_id)
+        self.canvas.delete(self.stats_total_cost)
+
+        # Add new stats.
+        dynamic_stats_offset = self.offset + 80
+        self.stats_round_id = self.canvas.create_text(self.board_width + (self.stats_width - 2 * self.offset) / 2.0,
+                                                      dynamic_stats_offset, text='Round ID: %d' % round_id,
+                                                      justify=CENTER)
+        self.stats_iteration_id = self.canvas.create_text(self.board_width + (self.stats_width - 2 * self.offset) / 2.0,
+                                                          dynamic_stats_offset + 30,
+                                                          text='Iteration ID: %d' % iteration_id, justify=CENTER)
+        self.stats_total_cost = self.canvas.create_text(self.board_width + (self.stats_width - 2 * self.offset) / 2.0,
+                                                        dynamic_stats_offset + 60, text='Total Cost: %.2f' % total_cost,
+                                                        justify=CENTER)
+
     def _coord(self, road_id, object_offset=0):
         return self.offset + (self.step_size * road_id) + (object_offset / 2)
 
     def _createCar(self, row_id, col_id, cost, car_queue):
-        cost_color_value = int(min(1, float(cost) / self.cost_cutoff) * 255)
-        cost_color = '#%02x%02x%02x' % (cost_color_value, 0, 0)
+        cost_color_value = 255 - int(min(1, float(cost) / self.cost_cutoff) * 200)
+        cost_color = '#%02x%02x%02x' % (0, 0, cost_color_value)
         circle_car = False
         if circle_car:
             car_size = 10
@@ -37,7 +66,7 @@ class Animator:
                                                 fill=cost_color, outline=cost_color, width=car_size)
 
         direction = car_queue[0].direction
-        car_size = 40
+        car_size = 40 # min(1, float(cost) / self.cost_cutoff) * 30 + 30
         if direction == 'up':
             return self.canvas.create_polygon(self._coord(row_id, -car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, car_size), self._coord(col_id, car_size),
@@ -55,7 +84,7 @@ class Animator:
                                               self._coord(row_id, car_size), self._coord(col_id, car_size),
                                               self._coord(row_id, -car_size), self._coord(col_id, 0), fill=cost_color)
         
-    def initAnimation(self):
+    def initAnimation(self, protocol_name, car_class_name):
         # Draw road network.
         for row_id in xrange(1, self.num_roads, 2):
             self.canvas.create_line(self._coord(0), self._coord(row_id), self._coord(self.num_roads - 1),
@@ -75,9 +104,20 @@ class Animator:
                 x = self._coord(col_id)
                 self.canvas.create_oval(x - dot_width / 2, y - dot_width / 2, x + dot_width / 2, y + dot_width / 2,
                                         fill='black', width=dot_width)
+
+        # Add animation-wide parameter info.
+        self.canvas.create_text(self.board_width + (self.stats_width - 2 * self.offset) / 2.0, self.offset,
+                                text='Protocol: %s' % protocol_name, justify=CENTER)
+        self.canvas.create_text(self.board_width + (self.stats_width - 2 * self.offset) / 2.0,  self.offset + 30,
+                                text='Car: %s' % car_class_name, justify=CENTER)
+
+        # Initialize the stats.
+        self._updateStats(0, 0, 0)
+
+        # Update the canvas.
         self.master.update()
 
-    def initRound(self, board, cost_board):
+    def initRound(self, board, cost_board, round_id, total_cost):
         # Remove existing cars.
         [[self.canvas.delete(car) for car in car_row] for car_row in self.car_board]
         [[self.canvas.delete(car_label) for car_label in car_label_row] for car_label_row in self.car_labels]
@@ -94,10 +134,15 @@ class Animator:
                                                     justify=CENTER)
                 self.car_board[row_id][col_id] = car
                 self.car_labels[row_id][col_id] = car_label
+
+        # Update the stats.
+        self._updateStats(round_id, 0, total_cost)
+
+        # Update the canvas.
         self.master.update()
         self.prev_board = copy.deepcopy(board)
 
-    def updateAnimation(self, board, cost_board, win_next_positions):
+    def updateAnimation(self, board, cost_board, win_next_positions, round_id, iteration_id, total_cost):
         '''
         Updates the canvas and displays the new state of the board for self.iteration_time seconds.
         :param board: List of lists of queues. The queue at (x,y) represents the queue of cars at that position.
@@ -175,6 +220,9 @@ class Animator:
         # Remove the sliding cars and labels.
         [self.canvas.delete(car) for car, _, _, _ in slide_cars]
         [self.canvas.delete(label) for _, label, _, _ in slide_cars]
+
+        # Update the stats.
+        self._updateStats(round_id, iteration_id, total_cost)
 
         # Update the canvas.
         self.master.update()

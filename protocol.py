@@ -6,8 +6,7 @@ class Protocol(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        # Initialize a map from car_id to total reward.
-        self.rewards = {}
+        self.rewards = None
         self.fixed_cost = None
         self.initial_reward = 0.0
 
@@ -32,6 +31,7 @@ class Protocol(object):
         :param car_id: Car that will be rewarded.
         :param position: (x,y) tuple coordinates of the current position of the car for whom to compute a reward.
         :param win_position: (x,y) tuple coordinates of the position that won the conflict.
+        :param car_action: Action the car took.
         :param position_0: (x,y) tuple coordinates of one of the positions involved in the conflict.
         :param actions_0: List of actions for each car in position_0.
         :param position_1: (x,y) tuple coordinates of one of the positions involved in the conflict.
@@ -44,13 +44,25 @@ class Protocol(object):
     def __str__(self):
         pass
 
-    def setSimulationParams(self, fixed_cost):
+    def setSimulationParams(self, fixed_cost, num_cars):
         """
         Set parameters specific to the simulation.
         :param fixed_cost: Cost per car per iteration (aside from the car's priority).
+        :param number of cars in the simulation:
         :return:
         """
         self.fixed_cost = fixed_cost
+
+        # Initialize a map from car_id to the car's reward.
+        for car_id in xrange(num_cars):
+            self.rewards[car_id] = self.initial_reward
+
+    def initRound(self, round_id):
+        """
+        This is called at the beginning of the round
+        :return:
+        """
+        pass
 
     def getCarReward(self, car_id):
         """
@@ -58,9 +70,9 @@ class Protocol(object):
         :param car_id: Car for which to return the total reward.
         :return: Float reward value.
         """
-        if car_id in self.rewards:
-            return self.rewards[car_id]
-        return self.initial_reward
+        if car_id not in self.rewards:
+            raise Exception('car_id %d not in the protocol\'s reward dict' % car_id)
+        return self.rewards[car_id]
 
     def getTotalReward(self, num_cars):
         """
@@ -97,8 +109,6 @@ class RandomProtocol(Protocol):
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         # Arbitrarily pick a reward.
         reward = random.randint(0, 1)
-        if car_id not in self.rewards:
-            self.rewards[car_id] = self.initial_reward
         self.rewards[car_id] += reward
         return reward
 
@@ -120,6 +130,7 @@ class VCGProtocol(Protocol):
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
+            # There is no conflict.
             return position_0, position_1
 
         # Total bid is the sum of each car's bid plus fixed cost.
@@ -136,80 +147,143 @@ class VCGProtocol(Protocol):
         return win_position, lose_position
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
+        if position_1 is None:
+            # No conflict occurred.
+            return 0
+
         position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
         position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
+
+        if position == position_0:
+            car_position_bids = position_0_bids
+            other_position_bids = position_1_bids
+        else:
+            car_position_bids = position_1_bids
+            other_position_bids = position_0_bids
+
         bid_difference = abs(position_0_bids - position_1_bids)
 
-        reward = 0.0
-        if self.voting_externality and self.fixed_cost == 1.0:
-            # Compute externality as the social welfare to everyone else if a given agent were present but voted
-            # differently.
-            if bid_difference == 0:
-                # Conflict was a tie.
-                if car_action == 1:
-                    # Car would have lost had it bid 0.
-                    reward = -1.0
-                elif car_action == 0:
-                    # Car would have won had it bid non-zero.
-                    reward = 1.0
-            elif bid_difference == 1:
-                # One side won by one vote.
-                if position == win_position and car_action == 1:
-                    # Car won, but it would have tied had it bid 0.
-                    reward = -1.0
-                elif position != win_position and car_action == 0:
-                    # Car lost, but it would have tied had it bid 1.
-                    reward = 1.0
-        elif self.voting_externality:
-            # Compute externality as the social welfare to everyone else if a given agent were present but voted
-            # differently.
-            if bid_difference == 0:
-                # Conflict was a tie.
-                if car_action == 1:
-                    # Car would have lost had it bid 0.
-                    reward = -0.5
-                elif car_action == 0:
-                    # Car would have won had it bid 1.
-                    reward = 0.5
-            elif position == win_position:
-                # Car was in the winning position.
-                if bid_difference < car_action:
-                    # Car would have lost had it bid 0.
-                    reward = -1.0
-                elif bid_difference == car_action:
-                    # Car would have tied had it bid 0.
-                    reward = -0.5
-            else:
-                # Car was in the losing position.
-                if bid_difference < car_action:
-                    # Car would have won had it bid 1.
-                    reward = 1.0
-                elif bid_difference == car_action:
-                    # Car would have tied had it bid 1.
-                    reward = 0.5
-        else:
-            # Set to False to compute externality as the social welfare to everyone had a given agent not been present.
-            if position == win_position and car_action == 1:
-                # Car in winning position and car's action is 1.
-                if bid_difference == 0:
-                    # Car would have lost had it acted differently.
-                    reward = -1.0
-                elif bid_difference == 1:
-                    # Car would have tied had it acted differently.
-                    reward = -0.5
-            elif position != win_position and car_action == 0:
-                # Car in losing position and car's action is 0.
-                if bid_difference == 0:
-                    # Car would have won had it acted differently.
-                    reward = 1.0
-                elif bid_difference == 1:
-                    # Car would have tied had it acted differently.
-                    reward = 0.5
+        # Compute everyone else's total utility had car not been present.
+        utility_without_car = abs(other_position_bids - (car_position_bids - car_action - self.fixed_cost))
 
-        if car_id not in self.rewards:
-            self.rewards[car_id] = self.initial_reward
+        # Compute everyone else's total utility given that car was present.
+        utility_with_car = abs(other_position_bids - car_position_bids)
+        if position == win_position:
+            # Car won, so we remove the car's utility by subtracting its utility.
+            utility_with_car -= car_action + self.fixed_cost
+        else:
+            # Car lost, so we remove the car's utility by adding its utility.
+            utility_with_car += car_action + self.fixed_cost
+
+        externality = utility_without_car - utility_with_car
+
+        reward = -externality
+        # reward = 0.0
+        # if self.voting_externality and self.fixed_cost == 1.0:
+        #     # Compute externality as the social welfare to everyone else if a given agent were present but voted
+        #     # differently.
+        #     if bid_difference == 0:
+        #         # Conflict was a tie.
+        #         if car_action == 1:
+        #             # Car would have lost had it bid 0.
+        #             reward = -1.0
+        #         elif car_action == 0:
+        #             # Car would have won had it bid non-zero.
+        #             reward = 1.0
+        #     elif bid_difference == 1:
+        #         # One side won by one vote.
+        #         if position == win_position and car_action == 1:
+        #             # Car won, but it would have tied had it bid 0.
+        #             reward = -1.0
+        #         elif position != win_position and car_action == 0:
+        #             # Car lost, but it would have tied had it bid 1.
+        #             reward = 1.0
+        # elif self.voting_externality:
+        #     # Compute externality as the social welfare to everyone else if a given agent were present but voted
+        #     # differently.
+        #     if bid_difference == 0:
+        #         # Conflict was a tie.
+        #         if car_action == 1:
+        #             # Car would have lost had it bid 0.
+        #             reward = -0.5
+        #         elif car_action == 0:
+        #             # Car would have won had it bid 1.
+        #             reward = 0.5
+        #     elif position == win_position:
+        #         # Car was in the winning position.
+        #         if bid_difference < car_action:
+        #             # Car would have lost had it bid 0.
+        #             reward = -1.0
+        #         elif bid_difference == car_action:
+        #             # Car would have tied had it bid 0.
+        #             reward = -0.5
+        #     else:
+        #         # Car was in the losing position.
+        #         if bid_difference < car_action:
+        #             # Car would have won had it bid 1.
+        #             reward = 1.0
+        #         elif bid_difference == car_action:
+        #             # Car would have tied had it bid 1.
+        #             reward = 0.5
+        # else:
+        #     # Set to False to compute externality as the social welfare to everyone had a given agent not been present.
+        #     if position == win_position and car_action == 1:
+        #         # Car in winning position and car's action is 1.
+        #         if bid_difference == 0:
+        #             # Car would have lost had it not been present.
+        #             reward = -1.0
+        #         elif bid_difference == 1 + self.fixed_cost:
+        #             # Car would have tied had it acted differently.
+        #             reward = -0.5
+        #     elif position != win_position and car_action == 0:
+        #         # Car in losing position and car's action is 0.
+        #         if bid_difference == 0:
+        #             # Car would have won had it acted differently.
+        #             reward = 1.0
+        #         elif bid_difference == 1:
+        #             # Car would have tied had it acted differently.
+        #             reward = 0.5
+
         self.rewards[car_id] += reward
         return reward
 
     def __str__(self):
         return 'vcg'
+
+class ButtonProtocol(Protocol):
+    """
+    This is a protocol making use of a VCG auction.
+    """
+    def __init__(self):
+        super(ButtonProtocol, self).__init__()
+        self.first_iteration = True
+
+    def initRound(self, round_id):
+        self.first_iteration = True
+        for car_id in self.rewards:
+            self.rewards[car_id] += 1
+
+    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
+        if position_1 is None:
+            # There is no conflict.
+            return position_0, position_1
+
+        # Total bid is the sum of each car's bid plus fixed cost.
+        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
+        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
+
+        # Winner is the position with a higher bid. Ties are broken randomly.
+        win_position = position_0
+        lose_position = position_1
+        if position_1_bids > position_0_bids or (position_0_bids == position_1_bids and random.choice([True, False])):
+            win_position = position_1
+            lose_position = position_0
+
+        return win_position, lose_position
+
+    def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
+        # Reward is only updated at the beginning of each round.
+        if self.first_iteration:
+            self.rewards[car_id] -= car_action
+            self.first_iteration = False
+        return self.rewards[car_id]

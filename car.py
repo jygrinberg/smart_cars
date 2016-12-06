@@ -77,6 +77,7 @@ class RandomCar(Car):
     def __str__(self):
         return 'random'
 
+
 class TruthfulCar(Car):
     def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
         if self.unlimited_reward or self.protocol.getCarReward(self.car_id) > 0:
@@ -85,3 +86,13 @@ class TruthfulCar(Car):
 
     def __str__(self):
         return 'truthful'
+
+
+class AggressiveCar(Car):
+    def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
+        if self.unlimited_reward or self.protocol.getCarReward(self.car_id) > 0:
+            return 1
+        return 0
+
+    def __str__(self):
+        return 'greedy'
