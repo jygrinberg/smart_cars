@@ -38,7 +38,7 @@ def getProtocol(protocol_name):
         return VCGProtocol()
     if protocol_name == 'button':
         return ButtonProtocol()
-    return None
+    raise Exception('Unrecognized protocol name: %s' % protocol_name)
 
 def getCarClass(car_class_name):
     """
@@ -51,7 +51,7 @@ def getCarClass(car_class_name):
         return TruthfulCar
     if car_class_name == 'aggressive':
         return AggressiveCar
-    return None
+    raise Exception('Unrecognized car class name: %s' % car_class_name)
 
 def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost, unlimited_reward, random_seed):
     min_num_roads = 1
