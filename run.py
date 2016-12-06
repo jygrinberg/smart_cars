@@ -9,8 +9,8 @@ Load a simulation configuration from a file:
 python run.py --config_filename=<path_to_file.txt> --num_rounds=10
 
 Generate a plot (either num_cars vs. total_cost, or num_roads vs. total_cost):
-python run.py --plot_road_simulations num_cars=10 --num_rounds=10 --protocol=vcg --car=truthful
-python run.py --plot_car_simulations num_roads=10 --num_rounds=10 --protocol=vcg --car=truthful
+python run.py --plot_road_simulations --num_cars=10 --num_rounds=10
+python run.py --plot_car_simulations --num_roads=10 --num_rounds=10
 
 Other flags that can be combined with any of the use cases listed above:
 --random_seed=<int value>
@@ -109,10 +109,11 @@ def runAndPlotCheatingCarSimulations(options):
     num_cars_delta = 100
     rewards = {}
     num_cars = xrange(min_num_cars, max_num_cars + 1, num_cars_delta)
-    for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
+    for context in [{'protocol': 'random', 'car': 'random', 'my_car': 'random'},
+                    {'protocol': 'vcg', 'car': 'truthful', 'my_car': 'aggressive'}]:
         protocol = getProtocol(context['protocol'])
         CarClass = getCarClass(context['car'])
-        MyCarClass = None
+        MyCarClass = getCarClass(context['my_car'])
         curr_rewards = []
         for curr_num_cars in num_cars:
             config = Configurer()

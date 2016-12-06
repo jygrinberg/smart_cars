@@ -51,6 +51,9 @@ class Simulator:
             self.animator = Animator(500, self.config.height, self.num_cars, self.fixed_cost, self.my_car)
 
     def run(self):
+        if self.num_rounds == 0 or self.config.num_cars == 0 or self.config.num_roads == 0:
+            return
+
         if self.animator:
             self.animator.initAnimation(str(self.protocol), str(self.cars[0]))
 
