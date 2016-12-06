@@ -27,6 +27,7 @@ class Car:
         self.route = None
         self.destination = None
         self.direction = None
+        self.trip_num_iterations = None
         self.protocol = protocol
 
     def initTrip(self, origin, destination, route, priority):
@@ -35,6 +36,7 @@ class Car:
         self.route = route
         self.priority = priority
         self.direction = route[0][0]
+        self.trip_num_iterations = 0
 
     def getNextPosition(self):
         if len(self.route) == 0:
@@ -49,6 +51,8 @@ class Car:
             return (self.position[0] + 1, self.position[1])
 
     def updatePosition(self, position):
+        self.trip_num_iterations += 1
+
         if position != self.position:
             # Decrement the current direction by 1.
             self.route[0][1] -= 1
