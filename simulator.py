@@ -86,6 +86,8 @@ class Simulator:
                                                                             self.simulation_costs[-1]))
                 if self.my_car is not None:
                     print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1], self.my_car_costs[-1]))
+        if self.num_cars == 0:
+            return
         print('TOTAL MEAN COST: %.3f\tTOTAL MEAN COST PER CAR: %.3f\tMY CAR COST: %.3f' %
               (self.getMeanCost(), self.getMeanCost() / self.num_cars, self.getMyCarMeanCost()))
 
@@ -112,10 +114,6 @@ class Simulator:
         Returns the mean reward of my_car over all the rounds.
         '''
         return sum(self.my_car_rewards) / float(self.num_rounds)
-
-    def getMeanRewards(self):
-    return sum([rewards[-1] for rewards in self.simulation_rewards]) / float(len(self.simulation_rewards))
-
 
 class GameState:
     """

@@ -93,7 +93,7 @@ def runAndPlotCarSimulations(options):
             config = Configurer()
             config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
                                   options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, MyCarclass, options.num_rounds, options.fixed_cost,
+            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
                                   options.unlimited_reward,
                                   False, config)
             simulator.run()
@@ -112,17 +112,19 @@ def runAndPlotCheatingCarSimulations(options):
     for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
         protocol = getProtocol(context['protocol'])
         CarClass = getCarClass(context['car'])
+        MyCarClass = None
         curr_rewards = []
         for curr_num_cars in num_cars:
             config = Configurer()
             config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
                                   options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
+                                  options.unlimited_reward,
                                   False, config)
             simulator.run()
             curr_rewards.append(simulator.getMyCarMeanReward())
         rewards[context['protocol']] = curr_rewards
-    util.plotVariableVsCost(num_cars, rewards, 'Cars',
+    util.plotVariableVsReward(num_cars, rewards, 'Cars',
                             'cars_vs_rewards_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
                                                                 options.fixed_cost))
 
