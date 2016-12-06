@@ -121,6 +121,11 @@ class RandomProtocol(Protocol):
     """
     This is a baseline protocol that makes random decisions.
     """
+    def __init__(self):
+        super(RandomProtocol, self).__init__()
+        # Unlimited reward is always set to true in order to make everything completely random.
+        self.unlimited_reward = True
+
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
             return position_0, position_1
@@ -137,10 +142,7 @@ class RandomProtocol(Protocol):
         return position_1, position_0
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
-        # Arbitrarily pick a reward.
-        reward = random.randint(0, 1)
-        self.rewards[car_id] += reward
-        return reward
+        return 0
 
     def __str__(self):
         return 'random'

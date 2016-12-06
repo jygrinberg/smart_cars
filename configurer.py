@@ -9,11 +9,13 @@ class Configurer:
         self.height = None
         self._car_trips = []
         self.random_seed = None
+        self.high_priority_probability = None
 
-    def configWithArgs(self, num_cars, num_roads, random_seed):
+    def configWithArgs(self, num_cars, num_roads, random_seed, high_priority_probability):
         self.config_from_file = False
         self.num_cars = num_cars
         self.num_roads = num_roads
+        self.high_priority_probability = high_priority_probability
 
         if random_seed >= 0:
             self.random_seed = random_seed
@@ -83,9 +85,13 @@ class Configurer:
         if self.random_seed is not None:
             random.seed(self.random_seed + 43 * (car_id + 37 * round_id))
 
-        # Generate a random route and pick a random priority in the range [0, 1].
+        # Generate a random route and pick a random priority (priority is 1 with probability
+        # self.high_priority_probability).
         origin, destination, route = self._getRandomRoute()
-        priority = random.choice([0, 1])
+        if random.random() < self.high_priority_probability:
+            priority = 1
+        else:
+            priority = 0
         return origin, destination, route, priority
 
     def _getRandomRoute(self):

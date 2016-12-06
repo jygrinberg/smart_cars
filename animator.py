@@ -55,9 +55,13 @@ class Animator:
     def _coord(self, road_id, object_offset=0):
         return self.offset + (self.step_size * road_id) + (object_offset / 2)
 
-    def _createCar(self, row_id, col_id, cost, car_queue):
+    def _getCarColor(self, cost):
         cost_color_value = 255 - int(min(1, float(cost) / self.cost_cutoff) * 200)
         cost_color = '#%02x%02x%02x' % (0, 0, cost_color_value)
+        return cost_color
+
+    def _createCar(self, row_id, col_id, cost, car_queue):
+        cost_color = self._getCarColor(cost)
         circle_car = False
         if circle_car:
             car_size = 10
@@ -163,12 +167,11 @@ class Animator:
                 label = self.canvas.create_text(self._coord(win_position[0]), self._coord(win_position[1]), text='1',
                                                 fill='white', justify=CENTER)
 
-                # Update the label at the winning position.
-                self.canvas.delete(self.car_labels[win_position[0]][win_position[1]])
-                self.car_labels[win_position[0]][win_position[1]] = \
-                    self.canvas.create_text(self._coord(win_position[0]), self._coord(win_position[1]),
-                                            text='%d' % (len(self.prev_board[win_position[0]][win_position[1]]) - 1),
-                                            fill='white', justify=CENTER)
+                # Update the car and label at the winning position.
+                self.canvas.itemconfig(self.car_board[win_position[0]][win_position[1]],
+                                       fill=self._getCarColor(cost_board[win_position[0]][win_position[1]]))
+                self.canvas.itemconfig(self.car_labels[win_position[0]][win_position[1]],
+                                       text='%d' % (len(self.prev_board[win_position[0]][win_position[1]]) - 1))
             else:
                 # There is only one car in the win position, so move the widgets at this position.
                 car = self.car_board[win_position[0]][win_position[1]]

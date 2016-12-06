@@ -53,7 +53,7 @@ def getCarClass(car_class_name):
         return AggressiveCar
     raise Exception('Unrecognized car class name: %s' % car_class_name)
 
-def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost, unlimited_reward, random_seed):
+def runAndPlotRoadSimulations(options):
     min_num_roads = 1
     max_num_roads = 50
     costs = {}
@@ -65,15 +65,18 @@ def runAndPlotRoadSimulations(num_cars, num_rounds, fixed_cost, unlimited_reward
         curr_costs = []
         for curr_num_roads in num_roads:
             config = Configurer()
-            config.configWithArgs(num_cars, curr_num_roads, random_seed)
-            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, False, config)
+            config.configWithArgs(options.num_cars, curr_num_roads, options.random_seed,
+                                  options.high_priority_probability)
+            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+                                  False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
     util.plotVariableVsCost(num_roads, costs, 'Roads',
-                            'roads_vs_cost_%d_%d_%d_%.1f.png' % (min_num_roads, max_num_roads, num_cars, fixed_cost))
+                            'roads_vs_cost_%d_%d_%d_%.1f.png' % (min_num_roads, max_num_roads, options.num_cars,
+                                                                 options.fixed_cost))
 
-def runAndPlotCarSimulations(num_roads, num_rounds, fixed_cost, unlimited_reward, random_seed):
+def runAndPlotCarSimulations(options):
     min_num_cars = 0
     max_num_cars = 1000
     num_cars_delta = 100
@@ -85,13 +88,16 @@ def runAndPlotCarSimulations(num_roads, num_rounds, fixed_cost, unlimited_reward
         curr_costs = []
         for curr_num_cars in num_cars:
             config = Configurer()
-            config.configWithArgs(curr_num_cars, num_roads, random_seed)
-            simulator = Simulator(protocol, CarClass, num_rounds, fixed_cost, unlimited_reward, False, config)
+            config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
+                                  options.high_priority_probability)
+            simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
+                                  False, config)
             simulator.run()
             curr_costs.append(simulator.getMeanCost())
         costs[context['protocol']] = curr_costs
     util.plotVariableVsCost(num_cars, costs, 'Cars',
-                            'cars_vs_cost_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, num_roads, fixed_cost))
+                            'cars_vs_cost_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
+                                                                options.fixed_cost))
 
 def setRandomSeed(random_seed):
     """
@@ -113,22 +119,24 @@ def getOptions():
                       help='name of the protocol to use: random, vcg')
     parser.add_option('-c', '--car', dest='car_class_name',
                       help='name of the car to use: random, truthful')
-    parser.add_option('-n', '--num_cars', dest='num_cars', type='int', default=100,
+    parser.add_option('--num_cars', dest='num_cars', type='int', default=100,
                       help='number of cars on the road')
-    parser.add_option('-r', '--num_rounds', dest='num_rounds', type='int', default=10,
+    parser.add_option('--num_rounds', dest='num_rounds', type='int', default=10,
                       help='number of rounds to simulate')
-    parser.add_option('-g', '--num_roads', dest='num_roads', type='int', default=5,
+    parser.add_option('--num_roads', dest='num_roads', type='int', default=5,
                       help='number of up/down or left/right road pairs in the network')
     parser.add_option('-f', '--fixed_cost', dest='fixed_cost', type='float', default=1.0,
                       help='fixed cost per car per iteration')
-    parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
-                      help='seed to use a pseud-random generator')
+    parser.add_option('--high_priority_probability', dest='high_priority_probability', type='float', default=0.1,
+                      help='fixed cost per car per iteration')
     parser.add_option('--config_filename', dest='config_filename', default=None,
                       help='pathname for file specifying the board configuration')
     parser.add_option('--plot_road_simulations', dest='plot_road_simulations', action='store_true',
                       help='generate a plot of num_roads vs. total cost')
     parser.add_option('--plot_car_simulations', dest='plot_car_simulations', action='store_true',
                       help='generate a plot of num_cars vs. total cost')
+    parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
+                      help='seed to use a pseud-random generator')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='print the board after each iteration')
     parser.add_option('-a', '--animate', dest='animate', action='store_true',
@@ -151,11 +159,9 @@ def main():
     setRandomSeed(options.random_seed)
 
     if options.plot_road_simulations:
-        runAndPlotRoadSimulations(options.num_cars, options.num_rounds, options.fixed_cost, options.unlimited_reward,
-                                  options.random_seed)
+        runAndPlotRoadSimulations(options)
     elif options.plot_car_simulations:
-        runAndPlotCarSimulations(options.num_roads, options.num_rounds, options.fixed_cost, options.unlimited_reward,
-                                 options.random_seed)
+        runAndPlotCarSimulations(options)
     else:
         # Get the protocol and car specified by the command line arguments.
         protocol = getProtocol(options.protocol)
@@ -167,7 +173,8 @@ def main():
         if options.config_filename:
             config.configFromFile(options.config_filename)
         else:
-            config.configWithArgs(options.num_cars, options.num_roads, options.random_seed)
+            config.configWithArgs(options.num_cars, options.num_roads, options.random_seed,
+                                  options.high_priority_probability)
 
         # Initialize the simulator.
         simulator = Simulator(protocol, CarClass, options.num_rounds, options.fixed_cost, options.unlimited_reward,
