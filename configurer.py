@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 class Configurer:
     def __init__(self):
@@ -88,10 +89,8 @@ class Configurer:
         # Generate a random route and pick a random priority (priority is 1 with probability
         # self.high_priority_probability).
         origin, destination, route = self._getRandomRoute()
-        if random.random() < self.high_priority_probability:
-            priority = 1
-        else:
-            priority = 0
+        priority = np.random.choice([0,1],
+            p=[1-self.high_priority_probability, self.high_priority_probability])
         return origin, destination, route, priority
 
     def _getRandomRoute(self):
