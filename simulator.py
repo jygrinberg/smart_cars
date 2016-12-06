@@ -45,7 +45,6 @@ class Simulator:
         for car_id in xrange(num_car_class):
             car = CarClass(car_id, self.protocol)
             self.cars.append(car)
-        random.shuffle(self.cars)
 
         self.animator = None
         if animate:
@@ -81,10 +80,12 @@ class Simulator:
                 self.my_car_rewards.append(self.protocol.getCarReward(self.my_car.car_id))
 
             game.printState(round_id, iteration_id)
-            print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
-                                                                        self.simulation_costs[-1]))
-            if self.my_car is not None:
-                print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1], self.my_car_costs[-1]))
+            
+            if util.VERBOSE:
+                print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
+                                                                            self.simulation_costs[-1]))
+                if self.my_car is not None:
+                    print('\tMy car reward = %.3f\tMy car cost = %.3f' % (self.my_car_rewards[-1], self.my_car_costs[-1]))
         print('TOTAL MEAN COST: %.3f\tTOTAL MEAN COST PER CAR: %.3f\tMY CAR COST: %.3f' %
               (self.getMeanCost(), self.getMeanCost() / self.num_cars, self.getMyCarMeanCost()))
 
@@ -135,8 +136,9 @@ class GameState:
         # latest iteration, and next_position is the position to which the car there moved.
         self.win_next_positions = []
 
-        # Initialize a trip for each car. Add each car to the board.
+        # Initialize a trip for each car. Add each car to the board. Also, randomly shuffle the order of the cars.
         self.cars = cars
+        random.shuffle(self.cars)
         for car in self.cars:
             # Get the starting position, destination, route from origin to destination, and priority for the trip. The
             # route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
