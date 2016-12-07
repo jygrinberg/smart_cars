@@ -99,3 +99,14 @@ class AggressiveCar(Car):
 
     def __str__(self):
         return 'greedy'
+
+
+class StatisticallyAggressiveCar(Car):
+    def getAction(self, position_0, num_cars_0, position_1, num_cars_1):
+        if random.random() < 1.0 / self.protocol.num_rounds_latency:
+            return 1
+
+        return 0
+
+    def __str__(self):
+        return 'statistical_greedy'

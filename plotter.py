@@ -38,9 +38,9 @@ class Plotter:
                          'label': 'Button: others=truthful, me=truthful'},
                         {'protocol': 'button', 'car': 'truthful', 'my_car': 'aggressive',
                          'label': 'Button: others=truthful, me=aggressive'},
-                        {'protocol': 'button', 'car': 'aggressive', 'my_car': 'truthful',
+                        {'protocol': 'button', 'car': 'statistically_aggressive', 'my_car': 'truthful',
                          'label': 'Button: others=aggressive, me=truthful'},
-                        {'protocol': 'button', 'car': 'aggressive', 'my_car': 'aggressive',
+                        {'protocol': 'button', 'car': 'statistically_aggressive', 'my_car': 'aggressive',
                          'label': 'Button: others=aggressive, me=aggressive'}]:
             protocol = getProtocol(context['protocol'])
             CarClass = getCarClass(context['car'])

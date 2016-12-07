@@ -56,6 +56,8 @@ def getCarClass(car_class_name):
         return TruthfulCar
     if car_class_name == 'aggressive':
         return AggressiveCar
+    if car_class_name == 'statistically_aggressive':
+        return StatisticallyAggressiveCar
     raise Exception('Unrecognized car class name: %s' % car_class_name)
 
 def setRandomSeed(random_seed):
