@@ -96,6 +96,8 @@ class Plotter:
                 # Extract the metric value.
                 if self.metric_name == 'cost':
                     metric_value = simulator.getMeanCost()
+                elif self.metric_name == 'mean_cost':
+                    metric_value = simulator.getMeanCost() / num_cars
                 elif self.metric_name == 'reward':
                     metric_value = simulator.getMeanReward()
                 elif self.metric_name == 'my_cost':
@@ -148,6 +150,8 @@ class Plotter:
         # Get a human readable string for the metric name.
         if self.metric_name == 'cost':
             metric_name_pretty = 'Total Cost'
+        elif self.metric_name == 'mean_cost':
+            metric_name_pretty = 'Mean Total Cost (per car)'
         elif self.metric_name == 'reward':
             metric_name_pretty = 'Total Reward'
         elif self.metric_name == 'my_cost':
