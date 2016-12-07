@@ -98,6 +98,8 @@ def getOptions():
                       help='pathname for file specifying the board configuration')
     parser.add_option('--plot', dest='plot', action='store_true',
                       help='generate a plot of variable_name vs. metric_name')
+    parser.add_option('--contexts', dest='contexts',
+                      help='protocols and car types to plot: b, b_o_r, o_r')
     parser.add_option('--variable_name', dest='variable_name',
                       help='name of the variable to vary when plotting: num_cars, num_roads, high_cost, etc.')
     parser.add_option('--variable_min', dest='variable_min', type='float', default=0.0,

@@ -10,7 +10,7 @@ class Configurer:
         self.height = None
         self._car_trips = []
         self.random_seed = None
-        self.high_priority_probability = None
+        self.high_priority_probability = 0.3
 
     def configWithArgs(self, num_cars, num_roads, random_seed, high_priority_probability):
         self.config_from_file = False

@@ -34,17 +34,36 @@ class Plotter:
         fixed_cost = util.highCostToFixedCost(options.high_cost)
         unlimited_reward = options.unlimited_reward
 
-        for context in [{'protocol': 'button', 'car': 'truthful', 'my_car': 'truthful',
+        if options.contexts == 'b':
+            contexts = [{'protocol': 'button', 'car': 'truthful', 'my_car': 'truthful',
                          'label': 'Button: others=truthful, me=truthful'},
                         {'protocol': 'button', 'car': 'truthful', 'my_car': 'aggressive',
                          'label': 'Button: others=truthful, me=aggressive'},
                         {'protocol': 'button', 'car': 'statistically_aggressive', 'my_car': 'truthful',
                          'label': 'Button: others=aggressive, me=truthful'},
                         {'protocol': 'button', 'car': 'statistically_aggressive', 'my_car': 'aggressive',
-                         'label': 'Button: others=aggressive, me=aggressive'}]:
+                         'label': 'Button: others=aggressive, me=aggressive'}]
+        elif options.contexts == 'b_o_r':
+            contexts = [{'protocol': 'button', 'car': 'truthful',
+                         'label': 'Button (truthful cars)'},
+                        {'protocol': 'optimal', 'car': 'truthful',
+                         'label': 'Optimal Greedy'},
+                        {'protocol': 'random', 'car': 'truthful',
+                         'label': 'Random'}]
+        elif options.context == 'o_r':
+            contexts = [{'protocol': 'optimal', 'car': 'truthful',
+                         'label': 'Optimal Greedy'},
+                        {'protocol': 'random', 'car': 'truthful',
+                         'label': 'Random'}]
+        else:
+            raise Exception('Unrecognized context: %s' % options.contexts)
+
+        for context in contexts:
             protocol = getProtocol(context['protocol'])
             CarClass = getCarClass(context['car'])
-            MyCarClass = getCarClass(context['my_car'])
+            MyCarClass = None
+            if 'my_car' in context:
+                MyCarClass = getCarClass(context['my_car'])
             metric_values = []
             for variable_value in variable_values:
                 # Update the variable value.
@@ -84,15 +103,16 @@ class Plotter:
             context_metrics[context['label']] = metric_values
 
         # Compute the filename given all the parameters.
-        filename = '%s_vs_%s_%.1f_to_%.1f_%d' % \
-                   (self.variable_name, self.metric_name, self.variable_min, self.variable_max, num_rounds)
+        filename = '%s_%s_vs_%s_%.1f_to_%.1f_%d' % \
+                   (options.contexts, self.variable_name, self.metric_name, self.variable_min, self.variable_max,
+                    num_rounds)
         if self.variable_name is not 'num_cars':
             filename += '_' + str(num_cars)
-        elif self.variable_name is not 'num_roads':
+        if self.variable_name is not 'num_roads':
             filename += '_' + str(num_roads)
-        elif self.variable_name is not 'high_priority_probability':
+        if self.variable_name is not 'high_priority_probability':
             filename += '_' + str(high_priority_probability)
-        elif self.variable_name is not 'high_cost':
+        if self.variable_name is not 'high_cost':
             filename += '_' + str(util.fixedCostToHighCost(fixed_cost))
         filename += '.png'
 
