@@ -41,6 +41,8 @@ def getProtocol(protocol_name):
         return ButtonProtocol()
     if protocol_name == 'optimal':
         return OptimalProtocol()
+    if protocol_name == 'optimal_random':
+        return OptimalRandomProtocol()
     raise Exception('Unrecognized protocol name: %s' % protocol_name)
 
 def getCarClass(car_class_name):

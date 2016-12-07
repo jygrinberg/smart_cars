@@ -5,3 +5,21 @@ python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max
 python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=100 --variable_step=10 --metric_name=my_cost --num_rounds=10000 --high_cost=4 --num_roads=1 --high_priority_probability=0.3 --random_seed=0
 
 python run.py --plot --variable_name=high_priority_probability --variable_min=0.1 --variable_max=0.5 --variable_step=0.1 --metric_name=my_cost --num_rounds=10000 --num_cars=10 --high_cost=4 --num_roads=1 --random_seed=0
+
+
+# 1x1, b_o_r
+python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max=10 --variable_step=1 --metric_name=cost --num_rounds=10000 --num_cars=10 --num_roads=1 --high_priority_probability=0.3 --random_seed=0 --contexts=b_o_r
+
+# Big network, increasing number of cars, o_r
+python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=1000 --variable_step=100 --metric_name=cost --num_rounds=10 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
+
+# Big network, increasing number of roads, o_r
+python run.py --plot --variable_name=num_roads --variable_min=1 --variable_max=100 --variable_step=10 --metric_name=cost --num_rounds=10 --high_cost=4 --num_cars=100 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
+python run.py --plot --variable_name=num_roads --variable_min=1 --variable_max=30 --variable_step=2 --metric_name=cost --num_rounds=100 --high_cost=4 --num_cars=50 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
+
+
+# 1x1, or_o_r
+python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max=10 --variable_step=1 --metric_name=cost --num_rounds=10000 --num_cars=10 --num_roads=1 --high_priority_probability=0.3 --random_seed=0 --contexts=or_o_r
+
+# Big network, increasing number of cars, or_o_r
+python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=1000 --variable_step=100 --metric_name=cost --num_rounds=10 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=or_o_r

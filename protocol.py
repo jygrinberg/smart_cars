@@ -358,3 +358,26 @@ class OptimalProtocol(Protocol):
 
     def __str__(self):
         return 'optimal'
+
+
+class OptimalRandomProtocol(OptimalProtocol):
+    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
+        if position_1 is None:
+            return position_0, position_1
+
+        # If only one position has cars, pick that position.
+        if len(actions_0) > 0 and len(actions_1) == 0:
+            return position_0, position_1
+        elif len(actions_1) > 0 and len(actions_0) == 0:
+            return position_1, position_0
+
+        optimal_probability = 0.5
+
+        if random.random() < optimal_probability:
+            # Pick an optimal choice.
+            return super(OptimalRandomProtocol, self).getWinLosePositions(position_0, actions_0, position_1, actions_1)
+
+        # Otherwise, arbitrarily pick win and lose positions.
+        if random.choice([True, False]):
+            return position_0, position_1
+        return position_1, position_0
