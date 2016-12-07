@@ -82,8 +82,10 @@ def getOptions():
                       help='number of rounds to simulate')
     parser.add_option('--num_roads', dest='num_roads', type='int', default=5,
                       help='number of up/down or left/right road pairs in the network')
-    parser.add_option('-f', '--fixed_cost', dest='fixed_cost', type='float', default=1.0,
-                      help='fixed cost per car per iteration')
+    # parser.add_option('-f', '--fixed_cost', dest='fixed_cost', type='float', default=1.0,
+    #                   help='fixed cost per car per iteration')
+    parser.add_option('--high_cost', dest='high_cost', type='float', default=3.0,
+                      help='cost for high priority car per iteration (cost for low priority car per iteration is 1)')
     parser.add_option('--high_priority_probability', dest='high_priority_probability', type='float', default=0.1,
                       help='fixed cost per car per iteration')
     parser.add_option('--config_filename', dest='config_filename', default=None,
@@ -91,7 +93,7 @@ def getOptions():
     parser.add_option('--plot', dest='plot', action='store_true',
                       help='generate a plot of variable_name vs. metric_name')
     parser.add_option('--variable_name', dest='variable_name',
-                      help='name of the variable to vary when plotting: num_cars, num_roads, fixed_cost, etc.')
+                      help='name of the variable to vary when plotting: num_cars, num_roads, high_cost, etc.')
     parser.add_option('--variable_min', dest='variable_min', type='float', default=0.0,
                       help='min value of the variable when plotting')
     parser.add_option('--variable_max', dest='variable_max', type='float', default=1.0,
@@ -144,8 +146,9 @@ def main():
                                   options.high_priority_probability)
 
         # Initialize the simulator.
-        simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
-                              options.unlimited_reward, options.animate, config)
+        simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds,
+                              util.highCostToFixedCost(options.high_cost), options.unlimited_reward, options.animate,
+                              config)
 
         # Run the simulation.
         simulator.run()

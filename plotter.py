@@ -25,11 +25,17 @@ class Plotter:
         num_rounds = options.num_rounds
         random_seed = options.random_seed
         high_priority_probability = options.high_priority_probability
-        fixed_cost = options.fixed_cost
+        fixed_cost = util.highCostToFixedCost(options.high_cost)
         unlimited_reward = options.unlimited_reward
 
-        for context in [{'protocol': 'button', 'car': 'truthful', 'my_car': 'truthful', 'label': 'b_t_t'},
-                        {'protocol': 'button', 'car': 'truthful', 'my_car': 'aggressive', 'label': 'b_t_a'}]:
+        for context in [{'protocol': 'button', 'car': 'truthful', 'my_car': 'truthful',
+                         'label': 'Button: others=truthful, me=truthful'},
+                        {'protocol': 'button', 'car': 'truthful', 'my_car': 'aggressive',
+                         'label': 'Button: others=truthful, me=aggressive'},
+                        {'protocol': 'button', 'car': 'aggressive', 'my_car': 'truthful',
+                         'label': 'Button: others=aggressive, me=truthful'},
+                        {'protocol': 'button', 'car': 'aggressive', 'my_car': 'aggressive',
+                         'label': 'Button: others=aggressive, me=aggressive'}]:
             protocol = getProtocol(context['protocol'])
             CarClass = getCarClass(context['car'])
             MyCarClass = getCarClass(context['my_car'])
@@ -41,9 +47,9 @@ class Plotter:
                 elif self.variable_name == 'num_roads':
                     num_roads = variable_value
                 elif self.variable_name == 'high_priority_probability':
-                    high_priority_probability = variable_value                
-                elif self.variable_name == 'fixed_cost':
-                    fixed_cost = variable_value
+                    high_priority_probability = variable_value
+                elif self.variable_name == 'high_cost':
+                    fixed_cost = util.highCostToFixedCost(variable_value)
                 else:
                     raise Exception('Unrecognized variable_name %s' % self.variable_name)
                 
@@ -75,13 +81,13 @@ class Plotter:
         filename = '%s_vs_%s_%.1f_to_%.1f' % \
                    (self.variable_name, self.metric_name, self.variable_min, self.variable_max)
         if self.variable_name is not 'num_cars':
-            filename += str(num_cars)
+            filename += '_' + str(num_cars)
         elif self.variable_name is not 'num_roads':
-            filename += str(num_roads)
+            filename += '_' + str(num_roads)
         elif self.variable_name is not 'high_priority_probability':
-            filename += str(high_priority_probability)
-        elif self.variable_name is not 'fixed_cost':
-            filename += str(fixed_cost)
+            filename += '_' + str(high_priority_probability)
+        elif self.variable_name is not 'high_cost':
+            filename += '_' + str(util.fixedCostToHighCost(fixed_cost))
         filename += '.png'
 
         self._plotVariableVsMetric(variable_values, context_metrics, filename)
@@ -101,8 +107,8 @@ class Plotter:
             variable_name_pretty = 'Number of roads'
         elif self.variable_name == 'high_priority_probability':
             variable_name_pretty = 'Probability of high priority'                
-        elif self.variable_name == 'fixed_cost':
-            variable_name_pretty = 'Fixed cost'
+        elif self.variable_name == 'high_cost':
+            variable_name_pretty = 'High cost'
         else:
             raise Exception('Unrecognized variable_name %s' % self.variable_name)        
 
@@ -120,7 +126,7 @@ class Plotter:
 
         # Decorate the plot.
         plt.title('%s vs. %s' % (variable_name_pretty, metric_name_pretty))
-        plt.xlabel(self.variable_name)
+        plt.xlabel(variable_name_pretty)
         plt.ylabel(metric_name_pretty)
         plt.grid()
         plt.legend()
