@@ -24,6 +24,7 @@ import util
 from car import *
 from configurer import *
 from protocol import *
+from plotter import *
 from simulator import *
 from optparse import OptionParser
 
@@ -51,83 +52,7 @@ def getCarClass(car_class_name):
         return TruthfulCar
     if car_class_name == 'aggressive':
         return AggressiveCar
-    raise Exception('Unrecognized car class name: %s' % car_class_name)
-
-def runAndPlotRoadSimulations(options):
-    min_num_roads = 1
-    max_num_roads = 50
-    costs = {}
-    num_roads = [curr_num_roads for curr_num_roads in xrange(min_num_roads, max_num_roads + 1) if
-                 curr_num_roads < 20 or curr_num_roads % 2 == 0]
-    for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
-        protocol = getProtocol(context['protocol'])
-        CarClass = getCarClass(context['car'])
-        MyCarClass = None
-        curr_costs = []
-        for curr_num_roads in num_roads:
-            config = Configurer()
-            config.configWithArgs(options.num_cars, curr_num_roads, options.random_seed,
-                                  options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
-                                  options.unlimited_reward,
-                                  False, config)
-            simulator.run()
-            curr_costs.append(simulator.getMeanCost())
-        costs[context['protocol']] = curr_costs
-    util.plotVariableVsCost(num_roads, costs, 'Roads',
-                            'roads_vs_cost_%d_%d_%d_%.1f.png' % (min_num_roads, max_num_roads, options.num_cars,
-                                                                 options.fixed_cost))
-
-def runAndPlotCarSimulations(options):
-    min_num_cars = 0
-    max_num_cars = 1000
-    num_cars_delta = 100
-    costs = {}
-    num_cars = xrange(min_num_cars, max_num_cars + 1, num_cars_delta)
-    for context in [{'protocol': 'random', 'car': 'random'}, {'protocol': 'vcg', 'car': 'truthful'}]:
-        protocol = getProtocol(context['protocol'])
-        CarClass = getCarClass(context['car'])
-        MyCarClass = None
-        curr_costs = []
-        for curr_num_cars in num_cars:
-            config = Configurer()
-            config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
-                                  options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
-                                  options.unlimited_reward,
-                                  False, config)
-            simulator.run()
-            curr_costs.append(simulator.getMeanCost())
-        costs[context['protocol']] = curr_costs
-    util.plotVariableVsCost(num_cars, costs, 'Cars',
-                            'cars_vs_cost_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
-                                                                options.fixed_cost))
-
-def runAndPlotCheatingCarSimulations(options):
-    min_num_cars = 0
-    max_num_cars = 1000
-    num_cars_delta = 100
-    rewards = {}
-    num_cars = xrange(min_num_cars, max_num_cars + 1, num_cars_delta)
-    for context in [{'protocol': 'random', 'car': 'random', 'my_car': 'random'},
-                    {'protocol': 'vcg', 'car': 'truthful', 'my_car': 'aggressive'}]:
-        protocol = getProtocol(context['protocol'])
-        CarClass = getCarClass(context['car'])
-        MyCarClass = getCarClass(context['my_car'])
-        curr_rewards = []
-        for curr_num_cars in num_cars:
-            config = Configurer()
-            config.configWithArgs(curr_num_cars, options.num_roads, options.random_seed,
-                                  options.high_priority_probability)
-            simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds, options.fixed_cost,
-                                  options.unlimited_reward,
-                                  False, config)
-            simulator.run()
-            curr_rewards.append(simulator.getMyCarMeanReward())
-        rewards[context['protocol']] = curr_rewards
-    util.plotVariableVsReward(num_cars, rewards, 'Cars',
-                            'cars_vs_rewards_%d_%d_%d_%.1f.png' % (min_num_cars, max_num_cars, options.num_roads,
-                                                                options.fixed_cost))
+    return None
 
 def setRandomSeed(random_seed):
     """
@@ -163,12 +88,18 @@ def getOptions():
                       help='fixed cost per car per iteration')
     parser.add_option('--config_filename', dest='config_filename', default=None,
                       help='pathname for file specifying the board configuration')
-    parser.add_option('--plot_road_simulations', dest='plot_road_simulations', action='store_true',
-                      help='generate a plot of num_roads vs. total cost')
-    parser.add_option('--plot_car_simulations', dest='plot_car_simulations', action='store_true',
-                      help='generate a plot of num_cars vs. total cost')
-    parser.add_option('--plot_cheating_car_simulations', dest='plot_cheating_car_simulations', action='store_true',
-                      help='generate a plot of num_cars vs. total rewards of cheating car')
+    parser.add_option('--plot', dest='plot', action='store_true',
+                      help='generate a plot of variable_name vs. metric_name')
+    parser.add_option('--variable_name', dest='variable_name',
+                      help='name of the variable to vary when plotting: num_cars, num_roads, fixed_cost, etc.')
+    parser.add_option('--variable_min', dest='variable_min', type='float', default=0.0,
+                      help='min value of the variable when plotting')
+    parser.add_option('--variable_max', dest='variable_max', type='float', default=1.0,
+                      help='max value of the variable when plotting')
+    parser.add_option('--variable_step', dest='variable_step', type='float', default=0.1,
+                      help='step value of the variable when plotting')
+    parser.add_option('--metric_name', dest='metric_name',
+                      help='name of the metric to compute when plotting: cost, reward, my_cost, my_reward.')
     parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
                       help='seed to use a pseud-random generator')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
@@ -192,19 +123,16 @@ def main():
     # Set a program-wide random seed for pseudo-random number generation.
     setRandomSeed(options.random_seed)
 
-    if options.plot_road_simulations:
-        runAndPlotRoadSimulations(options)
-    elif options.plot_car_simulations:
-        runAndPlotCarSimulations(options)
-    elif options.plot_cheating_car_simulations:
-        runAndPlotCheatingCarSimulations(options)
+    if options.plot:
+        # Generate a plot by varying the value of variable_name versus metric_name.
+        plotter = Plotter(options.variable_name, options.variable_min, options.variable_max, options.variable_step,
+                          options.metric_name)
+        plotter.runAndPlot(options)
     else:
         # Get the protocol and car specified by the command line arguments.
         protocol = getProtocol(options.protocol)
         CarClass = getCarClass(options.car_class_name)
-        MyCarClass = None
-        if options.my_car_class_name:
-            MyCarClass = getCarClass(options.my_car_class_name)
+        MyCarClass = getCarClass(options.my_car_class_name)
 
         # Set up the configurer, which can configure the simulation from a config file, or from command line args and
         # randomly generated car routes.
