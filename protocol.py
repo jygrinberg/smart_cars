@@ -120,14 +120,33 @@ class Protocol(object):
                 sum += self.initial_reward
         return sum
 
+    def _getOptimalWinLosePositions(self, position_0, actions_0, position_1, actions_1):
+        if position_1 is None:
+            # There is no conflict.
+            return position_0, position_1
+
+        # Total bid is the sum of each car's bid plus fixed cost.
+        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
+        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
+
+        # Winner is the position with a higher bid. Ties are broken randomly.
+        win_position = position_0
+        lose_position = position_1
+        if position_1_bids > position_0_bids or (position_0_bids == position_1_bids and random.choice([True, False])):
+            win_position = position_1
+            lose_position = position_0
+
+        return win_position, lose_position
+
+
 class RandomProtocol(Protocol):
     """
     This is a baseline protocol that makes random decisions.
     """
-    def __init__(self):
-        super(RandomProtocol, self).__init__()
+    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
         # Unlimited reward is always set to true in order to make everything completely random.
-        self.unlimited_reward = True
+        super(RandomProtocol, self).setSimulationParams(fixed_cost, num_cars, True,
+                                                        high_priority_probability)
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
@@ -164,22 +183,7 @@ class VCGProtocol(Protocol):
         self.voting_externality = voting_externality
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
-        if position_1 is None:
-            # There is no conflict.
-            return position_0, position_1
-
-        # Total bid is the sum of each car's bid plus fixed cost.
-        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
-        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
-
-        # Winner is the position with a higher bid. Ties are broken randomly.
-        win_position = position_0
-        lose_position = position_1
-        if position_1_bids > position_0_bids or (position_0_bids == position_1_bids and random.choice([True, False])):
-            win_position = position_1
-            lose_position = position_0
-
-        return win_position, lose_position
+        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1)
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
@@ -305,6 +309,10 @@ class ButtonProtocol(Protocol):
                                                         high_priority_probability)
         self.num_rounds_latency = int(1 / self.high_priority_probability)
 
+        # Initialize a map from car_id to the car's reward with *random* values.
+        for car_id in xrange(num_cars):
+            self.rewards[car_id] = random.randrange(-self.num_rounds_latency + 1, 2)
+
     def initRound(self, round_id):
         self.car_round_actions.clear()
 
@@ -324,22 +332,7 @@ class ButtonProtocol(Protocol):
         return self.car_round_actions[car_id]
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
-        if position_1 is None:
-            # There is no conflict.
-            return position_0, position_1
-
-        # Total bid is the sum of each car's bid plus fixed cost.
-        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
-        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
-
-        # Winner is the position with a higher bid. Ties are broken randomly.
-        win_position = position_0
-        lose_position = position_1
-        if position_1_bids > position_0_bids or (position_0_bids == position_1_bids and random.choice([True, False])):
-            win_position = position_1
-            lose_position = position_0
-
-        return win_position, lose_position
+        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1)
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         # Reward is only updated at the beginning of each round.
@@ -347,3 +340,21 @@ class ButtonProtocol(Protocol):
 
     def __str__(self):
         return 'button'
+
+
+class OptimalProtocol(Protocol):
+    """
+    This is an optimal greedy protocol assuming truthful cars.
+    """
+    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
+        super(OptimalProtocol, self).setSimulationParams(fixed_cost, num_cars, True,
+                                                         high_priority_probability)
+
+    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
+        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1)
+
+    def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
+        return 0
+
+    def __str__(self):
+        return 'optimal'

@@ -1,3 +1,7 @@
 -p vcg -c truthful --random_seed=0 --num_cars=10 --num_roads=1 --num_rounds=10 --fixed_cost=0.1 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv
 
---plot --variable_name=fixed_cost --variable_min=0.0 --variable_max=1.0 --variable_step=0.1 --metric_name=my_cost --num_rounds=100 --num_cars=10 --num_roads=1 --high_priority_probability=0.333 --random_seed=0
+python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max=10 --variable_step=1 --metric_name=my_cost --num_rounds=10000 --num_cars=10 --num_roads=1 --high_priority_probability=0.3 --random_seed=0
+
+python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=100 --variable_step=10 --metric_name=my_cost --num_rounds=10000 --high_cost=4 --num_roads=1 --high_priority_probability=0.3 --random_seed=0
+
+python run.py --plot --variable_name=high_priority_probability --variable_min=0.1 --variable_max=0.5 --variable_step=0.1 --metric_name=my_cost --num_rounds=10000 --num_cars=10 --high_cost=4 --num_roads=1 --random_seed=0

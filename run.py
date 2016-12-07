@@ -39,12 +39,16 @@ def getProtocol(protocol_name):
         return VCGProtocol()
     if protocol_name == 'button':
         return ButtonProtocol()
+    if protocol_name == 'optimal':
+        return OptimalProtocol()
     raise Exception('Unrecognized protocol name: %s' % protocol_name)
 
 def getCarClass(car_class_name):
     """
     Returns the *class* of a car.
     """
+    if car_class_name is None:
+        return None
     car_class_name = car_class_name.lower()
     if car_class_name == 'random':
         return RandomCar
@@ -52,7 +56,7 @@ def getCarClass(car_class_name):
         return TruthfulCar
     if car_class_name == 'aggressive':
         return AggressiveCar
-    return None
+    raise Exception('Unrecognized car class name: %s' % car_class_name)
 
 def setRandomSeed(random_seed):
     """

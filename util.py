@@ -14,4 +14,4 @@ def fixedCostToHighCost(fixed_cost):
     return 1.0 / fixed_cost + 1.0
 
 def highCostToFixedCost(high_cost):
-    return 1.0 / (high_cost + 1)
+    return 1.0 / (high_cost - 1)

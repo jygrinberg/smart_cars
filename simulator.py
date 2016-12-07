@@ -99,7 +99,7 @@ class Simulator:
         '''
         Returns the total mean cost of all cars over all the rounds.
         '''
-        return sum(self.simulation_costs) / float(self.num_rounds)
+        return (util.fixedCostToHighCost(self.fixed_cost) - 1) * sum(self.simulation_costs) / float(self.num_rounds)
 
     def getMeanReward(self):
         '''
@@ -111,7 +111,7 @@ class Simulator:
         '''
         Returns the mean cost of my_car over all the rounds.
         '''
-        return sum(self.my_car_costs) / float(self.num_rounds)
+        return (util.fixedCostToHighCost(self.fixed_cost) - 1) * sum(self.my_car_costs) / float(self.num_rounds)
 
     def getMyCarMeanReward(self):
         '''

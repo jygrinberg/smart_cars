@@ -15,10 +15,16 @@ class Plotter:
         self.variable_step = variable_step
         self.metric_name = metric_name
 
+        # Cast integer variables to ints.
+        if self.variable_name == 'num_cars' or self.variable_name == 'num_roads':
+            self.variable_min = int(self.variable_min)
+            self.variable_max = int(self.variable_max)
+            self.variable_step = int(self.variable_step)
+
     def runAndPlot(self, options):
         context_metrics = {}
         variable_values = [self.variable_min + (i * self.variable_step)
-                           for i in xrange(int((self.variable_max - self.variable_min) / self.variable_step))]
+                           for i in xrange(1 + int((self.variable_max - self.variable_min) / self.variable_step))]
 
         num_cars = options.num_cars
         num_roads = options.num_roads
@@ -57,7 +63,7 @@ class Plotter:
                 config = Configurer()
                 config.configWithArgs(num_cars, num_roads, random_seed, high_priority_probability)
                 simulator = Simulator(protocol, CarClass, MyCarClass, num_rounds, fixed_cost, unlimited_reward,
-                                      False, # Do not animate
+                                      options.animate,
                                       config)
                 simulator.run()
 
@@ -78,8 +84,8 @@ class Plotter:
             context_metrics[context['label']] = metric_values
 
         # Compute the filename given all the parameters.
-        filename = '%s_vs_%s_%.1f_to_%.1f' % \
-                   (self.variable_name, self.metric_name, self.variable_min, self.variable_max)
+        filename = '%s_vs_%s_%.1f_to_%.1f_%d' % \
+                   (self.variable_name, self.metric_name, self.variable_min, self.variable_max, num_rounds)
         if self.variable_name is not 'num_cars':
             filename += '_' + str(num_cars)
         elif self.variable_name is not 'num_roads':
