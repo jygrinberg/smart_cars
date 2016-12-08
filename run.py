@@ -72,10 +72,10 @@ def setRandomSeed(random_seed):
         random.seed(random_seed)
 
 def getOptions():
-    '''
+    """
     Get command-line options and handle errors.
     :return: Command line options and arguments.
-    '''
+    """
     parser = OptionParser()
 
     parser.add_option('-p', '--protocol', dest='protocol',
@@ -90,8 +90,6 @@ def getOptions():
                       help='number of rounds to simulate')
     parser.add_option('--num_roads', dest='num_roads', type='int', default=5,
                       help='number of up/down or left/right road pairs in the network')
-    # parser.add_option('-f', '--fixed_cost', dest='fixed_cost', type='float', default=1.0,
-    #                   help='fixed cost per car per iteration')
     parser.add_option('--high_cost', dest='high_cost', type='float', default=3.0,
                       help='cost for high priority car per iteration (cost for low priority car per iteration is 1)')
     parser.add_option('--high_priority_probability', dest='high_priority_probability', type='float', default=0.1,

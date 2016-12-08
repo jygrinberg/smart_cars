@@ -10,8 +10,19 @@ from collections import deque
 class Simulator:
     def __init__(self, protocol, CarClass, MyCarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
         """
-        :param fixed_cost: Cost per car per iteration (aside from the car's priority).
-        :param unlimited_reward: Initialize cars with infinite reward so that they can bid 1.0 whenever desired.
+        :param protocol: Subclass of the Protocol class.
+        :param CarClass: Class name of a subclass of the Car class. All cars (except possibly one -- see
+         ':param MyCarClass') will be this type of car.
+        :param MyCarClass: Class name of a subclass of the Car class. If not None, one car of of this type will be
+         created.
+        :param num_rounds: Number of simulation rounds to run. The same cars exist across rounds, and the protocol keeps
+         track of each car's reward across rounds. Each round represents one trip per car.
+        :param fixed_cost: Cost per car per iteration. Low priority cars accrue a cost of fixed_cost per iteration. High
+         priority cars accrue a cost of fixed_cost + priority per iteration.
+        :param unlimited_reward: Usually, cars can only bid high if they have enough reward (as defined by the
+         protocol). If True, always allow cars to bid high.
+        :param animate: If True, visualize the simulation using a Tkinter animator.
+        :param config: An instance of the Config class, which specifies other simulation parameters.
         """
         self.protocol = protocol
         self.num_rounds = num_rounds
@@ -51,6 +62,11 @@ class Simulator:
             self.animator = Animator(500, self.config.height, self.num_cars, self.fixed_cost, self.my_car)
 
     def run(self):
+        """
+        Runs the simulation for self.num_rounds number of rounds. Computes the total cost and reward for all cars per
+        round, and also the cost and reward for my_car per round (if the MyCarClass passed into the constructor was not
+        None).
+        """
         if self.num_rounds == 0 or self.config.num_cars == 0 or self.config.num_roads == 0:
             return
 
@@ -96,34 +112,42 @@ class Simulator:
               (self.getMeanCost(), self.getMeanCost() / self.num_cars, self.getMyCarMeanCost()))
 
     def getMeanCost(self):
-        '''
+        """
         Returns the total mean cost of all cars over all the rounds.
-        '''
+        """
         return (util.fixedCostToHighCost(self.fixed_cost) - 1) * sum(self.simulation_costs) / float(self.num_rounds)
 
     def getMeanReward(self):
-        '''
+        """
         Returns the total mean reward of all cars over all the rounds.
-        '''
+        """
         return sum(self.simulation_rewards) / float(self.num_rounds)
 
     def getMyCarMeanCost(self):
-        '''
+        """
         Returns the mean cost of my_car over all the rounds.
-        '''
+        """
         return (util.fixedCostToHighCost(self.fixed_cost) - 1) * sum(self.my_car_costs) / float(self.num_rounds)
 
     def getMyCarMeanReward(self):
-        '''
+        """
         Returns the mean reward of my_car over all the rounds.
-        '''
+        """
         return sum(self.my_car_rewards) / float(self.num_rounds)
 
 
 class GameState:
     """
+    This class manages the state of the road network when running the simulator. A new instance of this class should be
+    created for reach round in the simulation.
+
+    The road network is modeled as a grid of one-way streets.
     Street ids 1, 5, 9, etc. go down/right.
     Street ids 3, 7, 11, etc. go up/left.
+
+    The road network (saved in self.board) is a matrix of queues, where the queue at each position represents the queue
+    of cars waiting to progress through that position. The queues at intersections are allowed to have at most one car.
+    The queues at road segments can have any number of cars.
     """
 
     def __init__(self, cars, protocol, fixed_cost, config, round_id, my_car):
@@ -170,10 +194,10 @@ class GameState:
                 self.protocol.setCarRoundAction(car.car_id, car.getAction(car.position, 1, None, 0))
 
     def updateState(self):
-        '''
+        """
         Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
         simulation. Also updates self.win_next_positions with a list of (win_position, next_position) tuples.
-        '''
+        """
         # Increment the total weighted travel time and remove all the arrived cars from self.cars.
         travelling_cars = []
         for car in self.cars:
@@ -269,11 +293,18 @@ class GameState:
                 self.cost_board[car.position[0]][car.position[1]] += car.priority + self.fixed_cost
 
     def isEnd(self):
+        """
+        Determines if the round is over (i.e. if all cars have reached their destinations).
+        :return: True if the round is over.
+        """
         return self.num_cars_travelling == 0
 
     def printState(self, round_id, iteration_id):
-        if util.VERBOSE:
-            return
+        """
+        Prints the number of cars at each position in the board.
+        :param round_id: Round ID number.
+        :param iteration_id: Iteration ID number.
+        """
         if util.VERBOSE:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')

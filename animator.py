@@ -25,7 +25,7 @@ class Animator:
         self.canvas = Canvas(self.master, width=self.canvas_width, height=self.canvas_height)
         self.canvas.pack()
 
-        self.iteration_time = 0.1
+        self.iteration_time = 0.2
 
         self.car_board = [[None] * self.num_roads for _ in xrange(self.num_roads)]
         self.car_labels = [[None] * self.num_roads for _ in xrange(self.num_roads)]
@@ -62,6 +62,9 @@ class Animator:
         return cost_color
 
     def _createCar(self, row_id, col_id, cost, car_queue):
+        if self.prev_board is not None:
+            cost = sum([self.prev_board[row_id][col_id][i].priority + self.fixed_cost
+                        for i in xrange(1, len(self.prev_board[row_id][col_id]))])
         cost_color = self._getCarColor(cost)
         circle_car = False
         if circle_car:
@@ -128,6 +131,7 @@ class Animator:
 
         # Update the canvas.
         self.master.update()
+        time.sleep(self.iteration_time * 5)
 
     def initRound(self, board, cost_board, round_id, total_cost):
         # Remove existing cars.
@@ -176,8 +180,10 @@ class Animator:
                                                 fill='white', justify=CENTER)
 
                 # Update the car and label at the winning position.
+                cost = sum([self.prev_board[win_position[0]][win_position[1]][i].priority + self.fixed_cost
+                            for i in xrange(1, len(self.prev_board[win_position[0]][win_position[1]]))])
                 self.canvas.itemconfig(self.car_board[win_position[0]][win_position[1]],
-                                       fill=self._getCarColor(cost_board[win_position[0]][win_position[1]]))
+                                       fill=self._getCarColor(cost))
                 self.canvas.itemconfig(self.car_labels[win_position[0]][win_position[1]],
                                        text='%d' % (len(self.prev_board[win_position[0]][win_position[1]]) - 1))
             else:
