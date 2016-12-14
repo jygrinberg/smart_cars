@@ -14,57 +14,16 @@ python run.py --plot_car_simulations --num_roads=10 --num_rounds=10
 
 Other flags that can be combined with any of the use cases listed above:
 --random_seed=<int value>
---fixed_cost=<float in the range [0,1]>
+--high_cost=<float greater than or equal to 1.0>
 --unlimited_reward
 
 """
 
+import util
+from configurer import *
 from plotter import *
 from simulator import *
-
-
-def getProtocol(protocol_name):
-    """
-    Returns an *instance* of a protocol.
-    """
-    protocol_name = protocol_name.lower()
-    if protocol_name == 'random':
-        return RandomProtocol()
-    if protocol_name == 'vcg':
-        return VCGProtocol()
-    if protocol_name == 'button':
-        return ButtonProtocol()
-    if protocol_name == 'optimal':
-        return OptimalProtocol()
-    if protocol_name == 'optimal_random':
-        return OptimalRandomProtocol()
-    raise Exception('Unrecognized protocol name: %s' % protocol_name)
-
-def getCarClass(car_class_name):
-    """
-    Returns the *class* of a car.
-    """
-    if car_class_name is None:
-        return None
-    car_class_name = car_class_name.lower()
-    if car_class_name == 'random':
-        return RandomCar
-    if car_class_name == 'truthful':
-        return TruthfulCar
-    if car_class_name == 'aggressive':
-        return AggressiveCar
-    if car_class_name == 'statistically_aggressive':
-        return StatisticallyAggressiveCar
-    raise Exception('Unrecognized car class name: %s' % car_class_name)
-
-def setRandomSeed(random_seed):
-    """
-    Sets a seed for the random module and numpy module, if the provided seed is non-negative.
-    :param random_seed: Random seed value.
-    """
-    if random_seed >= 0:
-        print 'Setting random seed to %d.' % random_seed
-        random.seed(random_seed)
+from optparse import OptionParser
 
 def getOptions():
     """
@@ -111,8 +70,8 @@ def getOptions():
                       help='print the board after each iteration')
     parser.add_option('-a', '--animate', dest='animate', action='store_true',
                       help='display an animation of the simulation')
-    parser.add_option('-u', '--unlimited_reward', dest='unlimited_reward', action='store_true',
-                      help='initialize cars with infinite reward so they can bid 1.0 whenever desired')
+    parser.add_option('-u', '--force_unlimited_reward', dest='force_unlimited_reward', action='store_true',
+                      help='initialize cars with infinite reward so they can signal high priority whenever desired')
     options, args = parser.parse_args()
 
     # Set the verbose flag.
@@ -126,7 +85,7 @@ def main():
     options, args = getOptions()
 
     # Set a program-wide random seed for pseudo-random number generation.
-    setRandomSeed(options.random_seed)
+    util.setRandomSeed(options.random_seed)
 
     if options.plot:
         # Generate a plot by varying the value of variable_name versus metric_name.
@@ -134,24 +93,20 @@ def main():
                           options.metric_name)
         plotter.runAndPlot(options)
     else:
-        # Get the protocol and car specified by the command line arguments.
-        protocol = getProtocol(options.protocol)
-        CarClass = getCarClass(options.car_class_name)
-        MyCarClass = getCarClass(options.my_car_class_name)
-
-        # Set up the configurer, which can configure the simulation from a config file, or from command line args and
+        # Run the simulation with fixed parameters.
+        # Set up the configurer, which can configure the simulation from a config file, or from command-line args and
         # randomly generated car routes.
-        config = Configurer()
+        configuration = Configurer(util.getProtocolClass(options.protocol), util.getCarClass(options.car_class_name),
+                                   util.getCarClass(options.my_car_class_name), options.num_rounds, options.high_cost,
+                                   options.force_unlimited_reward, options.animate)
         if options.config_filename:
-            config.configFromFile(options.config_filename)
+            configuration.configFromFile(options.config_filename)
         else:
-            config.configWithArgs(options.num_cars, options.num_roads, options.random_seed,
-                                  options.high_priority_probability)
+            configuration.configWithArgs(options.num_cars, options.num_roads, options.random_seed,
+                                         options.high_priority_probability)
 
         # Initialize the simulator.
-        simulator = Simulator(protocol, CarClass, MyCarClass, options.num_rounds,
-                              util.highCostToFixedCost(options.high_cost), options.unlimited_reward, options.animate,
-                              config)
+        simulator = Simulator(configuration)
 
         # Run the simulation.
         simulator.run()

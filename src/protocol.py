@@ -10,13 +10,18 @@ class Protocol(object):
     '''
     __metaclass__ = ABCMeta
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.rewards = {}
         self.fixed_cost = None
         self.initial_reward = 0.0
-        self.unlimited_reward = False
+        self.unlimited_reward = config.force_unlimited_reward
         self.fixed_actions_per_round = False
         self.high_priority_probability = None
+
+        # Initialize a map from car_id to the car's reward.
+        for car_id in xrange(self.config.num_cars):
+            self.rewards[car_id] = self.initial_reward
 
     @abstractmethod
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -51,22 +56,6 @@ class Protocol(object):
     @abstractmethod
     def __str__(self):
         pass
-
-    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
-        """
-        Set parameters specific to the simulation.
-        :param fixed_cost: Cost per car per iteration (aside from the car's priority).
-        :param number of cars in the simulation.
-        :param unlimited_reward: If true, cars are allowed to bid 1 whenever they win.
-        :param high_priority_probability: Probability a car's priority will be high.
-        """
-        self.fixed_cost = fixed_cost
-        self.unlimited_reward = unlimited_reward
-        self.high_priority_probability = high_priority_probability
-
-        # Initialize a map from car_id to the car's reward.
-        for car_id in xrange(num_cars):
-            self.rewards[car_id] = self.initial_reward
 
     def initRound(self, round_id):
         """
@@ -126,8 +115,8 @@ class Protocol(object):
             return position_0, position_1
 
         # Total bid is the sum of each car's bid plus fixed cost.
-        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
-        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
+        position_0_bids = sum(actions_0) + len(actions_0)
+        position_1_bids = sum(actions_1) + len(actions_1)
 
         # Winner is the position with a higher bid. Ties are broken randomly.
         win_position = position_0
@@ -143,10 +132,11 @@ class RandomProtocol(Protocol):
     """
     This is a baseline protocol that makes random decisions.
     """
-    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
-        # Unlimited reward is always set to true in order to make everything completely random.
-        super(RandomProtocol, self).setSimulationParams(fixed_cost, num_cars, True,
-                                                        high_priority_probability)
+
+    def __init__(self, config):
+        super(RandomProtocol, self).__init__(config)
+        # Set reward to unlimited in order to make everything completely random.
+        self.unlimited_reward = True
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
@@ -173,13 +163,14 @@ class VCGProtocol(Protocol):
     """
     This is a protocol making use of a VCG auction.
     """
-    def __init__(self, voting_externality=True):
+
+    def __init__(self, config, voting_externality=True):
         '''
         :param voting_externality: Set to True to compute externality as the social welfare to everyone else if a given
         agent were present but voted differently. Set to False to compute externality as the social welfare to everyone
         had a given agent not been present.
         '''
-        super(VCGProtocol, self).__init__()
+        super(VCGProtocol, self).__init__(config)
         self.voting_externality = voting_externality
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
@@ -190,8 +181,11 @@ class VCGProtocol(Protocol):
             # No conflict occurred.
             return 0
 
-        position_0_bids = sum(actions_0) + len(actions_0) * self.fixed_cost
-        position_1_bids = sum(actions_1) + len(actions_1) * self.fixed_cost
+        position_0_bids = sum(actions_0) + len(actions_0)
+        position_1_bids = sum(actions_1) + len(actions_1)
+
+        # TODO Replace fixed_cost with high_cost.
+        self.fixed_cost = 1.0
 
         if position == position_0:
             car_position_bids = position_0_bids
@@ -291,26 +285,23 @@ class VCGProtocol(Protocol):
 
 class ButtonProtocol(Protocol):
     """
-    This is a protocol making use of a VCG auction.
+    This protocol allows each car to signal high priority as long as at least self.num_rounds_latency rounds rounds
+    have elapsed since the last time the car signalled high priority.
     """
-    def __init__(self):
-        super(ButtonProtocol, self).__init__()
+
+    def __init__(self, config):
+        super(ButtonProtocol, self).__init__(config)
 
         self.fixed_actions_per_round = True
-
-        # Number of rounds car has to wait after it bids 1 until it can bid 1 again.
-        self.num_rounds_latency = None
 
         # Initialize a dictionary. Key is car_id. Value is the car's action for the round.
         self.car_round_actions = {}
 
-    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
-        super(ButtonProtocol, self).setSimulationParams(fixed_cost, num_cars, unlimited_reward,
-                                                        high_priority_probability)
-        self.num_rounds_latency = int(1 / self.high_priority_probability)
+        # Number of rounds car has to wait after it bids 1 until it can bid 1 again.
+        self.num_rounds_latency = int(1 / self.config.high_priority_probability)
 
         # Initialize a map from car_id to the car's reward with *random* values.
-        for car_id in xrange(num_cars):
+        for car_id in xrange(self.config.num_cars):
             self.rewards[car_id] = random.randrange(-self.num_rounds_latency + 1, 2)
 
     def initRound(self, round_id):
@@ -346,9 +337,11 @@ class OptimalProtocol(Protocol):
     """
     This is an optimal greedy protocol assuming truthful cars.
     """
-    def setSimulationParams(self, fixed_cost, num_cars, unlimited_reward, high_priority_probability):
-        super(OptimalProtocol, self).setSimulationParams(fixed_cost, num_cars, True,
-                                                         high_priority_probability)
+
+    def __init__(self, config):
+        super(OptimalProtocol, self).__init__(config)
+        # Set reward to unlimited in order to make locally optimal choices.
+        self.unlimited_reward = True
 
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1)
@@ -361,6 +354,10 @@ class OptimalProtocol(Protocol):
 
 
 class OptimalRandomProtocol(OptimalProtocol):
+    """
+    This protocol implements OptimalProtocol 50% of the time and RandomProtocol 50% of the time.
+    """
+
     def getWinLosePositions(self, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
             return position_0, position_1

@@ -1,11 +1,13 @@
 from Tkinter import *
 import time
 import copy
+import util
 
 class Animator:
-    def __init__(self, size, num_roads, num_cars, fixed_cost, my_car):
+    def __init__(self, size, num_roads, num_cars, high_cost, my_car):
+        # TODO Replace fixed_cost with high_cost.
         self.num_roads = num_roads
-        self.fixed_cost = fixed_cost
+        self.fixed_cost = util.highCostToFixedCost(high_cost)
         self.my_car = my_car
 
         # Determine the max expected cost of a queue at any given position. This is a very rough approximation.

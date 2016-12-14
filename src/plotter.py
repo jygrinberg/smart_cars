@@ -1,5 +1,5 @@
-from cars.src.run import *
-from cars.src.simulator import *
+from run import *
+from simulator import *
 
 
 class Plotter:
@@ -26,8 +26,8 @@ class Plotter:
         num_rounds = options.num_rounds
         random_seed = options.random_seed
         high_priority_probability = options.high_priority_probability
-        fixed_cost = util.highCostToFixedCost(options.high_cost)
-        unlimited_reward = options.unlimited_reward
+        high_cost = options.high_cost
+        force_unlimited_reward = options.force_unlimited_reward
 
         if options.contexts == 'b':
             contexts = [{'protocol': 'button', 'car': 'truthful', 'my_car': 'truthful',
@@ -61,11 +61,6 @@ class Plotter:
             raise Exception('Unrecognized context: %s' % options.contexts)
 
         for context in contexts:
-            protocol = getProtocol(context['protocol'])
-            CarClass = getCarClass(context['car'])
-            MyCarClass = None
-            if 'my_car' in context:
-                MyCarClass = getCarClass(context['my_car'])
             metric_values = []
             for variable_value in variable_values:
                 # Update the variable value.
@@ -76,16 +71,20 @@ class Plotter:
                 elif self.variable_name == 'high_priority_probability':
                     high_priority_probability = variable_value
                 elif self.variable_name == 'high_cost':
-                    fixed_cost = util.highCostToFixedCost(variable_value)
+                    high_cost = variable_value
                 else:
                     raise Exception('Unrecognized variable_name %s' % self.variable_name)
-                
-                # Run the simulation.
-                config = Configurer()
+
+                # Set up the configurer using command-line args and randomly generated car routes.
+                config = Configurer(getProtocolClass(context['protocol']), getCarClass(context['car']),
+                                    getCarClass(context['my_car']) if 'my_car' in context else None,
+                                    num_rounds, high_cost, force_unlimited_reward, options.animate)
                 config.configWithArgs(num_cars, num_roads, random_seed, high_priority_probability)
-                simulator = Simulator(protocol, CarClass, MyCarClass, num_rounds, fixed_cost, unlimited_reward,
-                                      options.animate,
-                                      config)
+
+                # Initialize the simulator.
+                simulator = Simulator(config)
+
+                # Run the simulation.
                 simulator.run()
 
                 # Extract the metric value.
