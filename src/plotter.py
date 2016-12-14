@@ -1,10 +1,5 @@
-import util
-from car import *
-from configurer import *
-from protocol import *
-from run import *
-from simulator import *
-from optparse import OptionParser
+from cars.src.run import *
+from cars.src.simulator import *
 
 
 class Plotter:

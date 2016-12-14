@@ -1,15 +1,15 @@
 from __future__ import print_function
-from car import *
-from protocol import *
+from collections import deque
+
 from configurer import *
 from animator import *
-import time
 import util
-from collections import deque
+
 
 class Simulator:
     def __init__(self, protocol, CarClass, MyCarClass, num_rounds, fixed_cost, unlimited_reward, animate, config):
         """
+        TODO Consider moving all the parameters into the Config class.
         :param protocol: Subclass of the Protocol class.
         :param CarClass: Class name of a subclass of the Car class. All cars (except possibly one -- see
          ':param MyCarClass') will be this type of car.

@@ -19,14 +19,9 @@ Other flags that can be combined with any of the use cases listed above:
 
 """
 
-import os
-import util
-from car import *
-from configurer import *
-from protocol import *
 from plotter import *
 from simulator import *
-from optparse import OptionParser
+
 
 def getProtocol(protocol_name):
     """
