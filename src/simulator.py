@@ -77,7 +77,7 @@ class Simulator:
 
             game.printState(round_id, iteration_id)
 
-            if util.VERBOSE:
+            if util.VERBOSE >= 1:
                 print('Round %d\tTotal reward = %.3f\tTotal cost = %.3f' % (round_id, self.simulation_rewards[-1],
                                                                             self.simulation_costs[-1]))
                 if self.my_car is not None:
@@ -85,30 +85,31 @@ class Simulator:
                                                                           self.my_car_costs[-1]))
         if self.config.num_cars == 0:
             return
-        print('TOTAL MEAN COST: %.3f\tTOTAL MEAN COST PER CAR: %.3f\tMY CAR COST: %.3f' %
-              (self.getMeanCost(), self.getMeanCost() / self.config.num_cars, self.getMyCarMeanCost()))
+        print('CONFIGURATION: %s' % str(self.config))
+        print('MEAN COST: %.3f\tMY CAR COST: %.3f' %
+              (self.getMeanCost(), self.getMyCarMeanCost()))
 
     def getMeanCost(self):
         """
-        Returns the total mean cost of all cars over all the rounds.
+        Returns the mean cost per car per round.
         """
-        return (self.config.high_cost - 1) * sum(self.simulation_costs) / float(self.config.num_rounds)
+        return sum(self.simulation_costs) / float(self.config.num_rounds) / float(self.config.num_cars)
 
     def getMeanReward(self):
         """
-        Returns the total mean reward of all cars over all the rounds.
+        Returns the mean reward per car per round.
         """
-        return sum(self.simulation_rewards) / float(self.config.num_rounds)
+        return sum(self.simulation_rewards) / float(self.config.num_rounds) / float(self.config.num_cars)
 
     def getMyCarMeanCost(self):
         """
-        Returns the mean cost of my_car over all the rounds.
+        Returns the mean cost of my_car per round.
         """
-        return (self.config.high_cost - 1) * sum(self.my_car_costs) / float(self.config.num_rounds)
+        return sum(self.my_car_costs) / float(self.config.num_rounds)
 
     def getMyCarMeanReward(self):
         """
-        Returns the mean reward of my_car over all the rounds.
+        Returns the mean reward of my_car per round.
         """
         return sum(self.my_car_rewards) / float(self.config.num_rounds)
 
@@ -288,7 +289,7 @@ class GameState:
         :param round_id: Round ID number.
         :param iteration_id: Iteration ID number.
         """
-        if util.VERBOSE:
+        if util.VERBOSE >= 2:
             print('State: round=%d\titeration=%d' % (round_id, iteration_id))
             print('  ', end='')
             for x in xrange(self.config.width):

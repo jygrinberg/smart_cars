@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from collections import OrderedDict
 
 class Configurer:
     """
@@ -45,6 +46,7 @@ class Configurer:
         self._car_trips = []
         self.random_seed = None
         self.high_priority_probability = 0.3
+        self.filename = None
 
     def configWithArgs(self, num_cars, num_roads, random_seed, high_priority_probability):
         """
@@ -75,6 +77,7 @@ class Configurer:
         filename
         :param filename: Pathname for a config file.
         """
+        self.filename = filename
         with open(filename, 'r') as f:
             try:
                 self.num_cars = int(f.readline().strip())
@@ -247,3 +250,45 @@ class Configurer:
         :return:
         """
         self.protocol = self.ProtocolClass(self)
+
+    def __str__(self):
+        '''
+        self.ProtocolClass = ProtocolClass
+        self.CarClass = CarClass
+        self.MyCarClass = MyCarClass
+
+        # The protocol is initialized in self._finalizeConfig() once all the configurer's parameters are set.
+        self.protocol = None
+
+        # Initialize simulation parameters that are always specified by command line args.
+        self.num_rounds = num_rounds
+        self.high_cost = high_cost
+        self.force_unlimited_reward = force_unlimited_reward
+        self.animate = animate
+
+        # Initialize parameters that can be specified either by command line args or by a config file.
+        self.config_from_file = True
+        self.num_cars = None
+        self.num_roads = None
+        self.width = None
+        self.height = None
+        self._car_trips = []
+        self.random_seed = None
+        self.high_priority_probability = 0.3
+        self.filename = None
+        '''
+        params = {'Protocol': str(self.protocol),
+                  'CarClass': str(self.CarClass(None, None)),
+                  'MyCarclass': str(self.MyCarClass(None, None)) if self.MyCarClass else '',
+                  '# rounds': str(self.num_rounds),
+                  'High cost': str(self.high_cost),
+                  'Force unlimited reward': str(self.force_unlimited_reward),
+                  '# cars': str(self.num_cars),
+                  '# roads': str(self.num_roads),
+                  'Random seed': str(self.random_seed) if self.random_seed else '',
+                  'High priority probability': str(self.high_priority_probability),
+                  'Config filename': self.filename if self.filename else ''}
+        output = ''
+        for name, value in OrderedDict(sorted(params.items(), key=lambda t: t[0])).iteritems():
+            output += '%s: %s\t' % (name, value)
+        return output

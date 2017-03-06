@@ -55,7 +55,12 @@ def getOutfilePathname(filename):
     :param filename: Name of the file (EX: 'plot.png')
     :return: Absolute pathname (EX: '/home/cs269i/cars/outfiles/plot.png')
     """
-    return '%s/outfiles/%s' % (os.getcwd(), filename)
+    outfile_parent_dir = os.getcwd()
+    # The outfile dir is in the project root. If the current wording directory is src, set the outfile_parent_dir to the
+    # project root (parent directory of src).
+    if outfile_parent_dir[-3:] == 'src':
+        outfile_parent_dir = outfile_parent_dir[0:-4]
+    return '%s/outfiles/%s' % (outfile_parent_dir, filename)
 
 def fixedCostToHighCost(fixed_cost):
     return 1.0 / fixed_cost + 1.0

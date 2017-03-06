@@ -66,17 +66,18 @@ def getOptions():
                       help='name of the metric to compute when plotting: cost, reward, my_cost, my_reward.')
     parser.add_option('-s', '--random_seed', dest='random_seed', type='int', default=None,
                       help='seed to use a pseud-random generator')
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-                      help='print the board after each iteration')
+    parser.add_option('-v', '--verbose', dest='verbose', type='int', default=0,
+                      help='print the board after each iteration: 0 = lowest verbosity, 2 = highest verbosity')
     parser.add_option('-a', '--animate', dest='animate', action='store_true',
                       help='display an animation of the simulation')
+    parser.add_option('--print_board', dest='print_board', action='store_true',
+                      help='print the state of the board in each iteration of the simulation')
     parser.add_option('-u', '--force_unlimited_reward', dest='force_unlimited_reward', action='store_true',
                       help='initialize cars with infinite reward so they can signal high priority whenever desired')
     options, args = parser.parse_args()
 
-    # Set the verbose flag.
-    if options.verbose:
-        util.VERBOSE = True
+    # Set the verbosity level.
+    util.VERBOSE = options.verbose
 
     return options, args
 

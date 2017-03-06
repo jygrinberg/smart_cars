@@ -61,6 +61,7 @@ class Plotter:
             raise Exception('Unrecognized context: %s' % options.contexts)
 
         for context in contexts:
+            print 'Context: %s' % str(context)
             metric_values = []
             for variable_value in variable_values:
                 # Update the variable value.
@@ -76,8 +77,8 @@ class Plotter:
                     raise Exception('Unrecognized variable_name %s' % self.variable_name)
 
                 # Set up the configurer using command-line args and randomly generated car routes.
-                config = Configurer(getProtocolClass(context['protocol']), getCarClass(context['car']),
-                                    getCarClass(context['my_car']) if 'my_car' in context else None,
+                config = Configurer(util.getProtocolClass(context['protocol']), util.getCarClass(context['car']),
+                                    util.getCarClass(context['my_car']) if 'my_car' in context else None,
                                     num_rounds, high_cost, force_unlimited_reward, options.animate)
                 config.configWithArgs(num_cars, num_roads, random_seed, high_priority_probability)
 
@@ -90,8 +91,6 @@ class Plotter:
                 # Extract the metric value.
                 if self.metric_name == 'cost':
                     metric_value = simulator.getMeanCost()
-                elif self.metric_name == 'mean_cost':
-                    metric_value = simulator.getMeanCost() / num_cars
                 elif self.metric_name == 'reward':
                     metric_value = simulator.getMeanReward()
                 elif self.metric_name == 'my_cost':
@@ -116,7 +115,7 @@ class Plotter:
         if self.variable_name is not 'high_priority_probability':
             filename += '_' + str(high_priority_probability)
         if self.variable_name is not 'high_cost':
-            filename += '_' + str(util.fixedCostToHighCost(fixed_cost))
+            filename += '_' + str(high_cost)
         filename += '.png'
 
         self._plotVariableVsMetric(variable_values, context_metrics, filename)
@@ -143,15 +142,13 @@ class Plotter:
 
         # Get a human readable string for the metric name.
         if self.metric_name == 'cost':
-            metric_name_pretty = 'Total Cost'
-        elif self.metric_name == 'mean_cost':
-            metric_name_pretty = 'Mean Total Cost (per car)'
+            metric_name_pretty = 'Cost (per car per round)'
         elif self.metric_name == 'reward':
-            metric_name_pretty = 'Total Reward'
+            metric_name_pretty = 'Reward (per car per round)'
         elif self.metric_name == 'my_cost':
-            metric_name_pretty = 'My Car Cost'
+            metric_name_pretty = 'My Car Cost (per round)'
         elif self.metric_name == 'my_reward':
-            metric_name_pretty = 'My Car Reward'
+            metric_name_pretty = 'My Car Reward (per round)'
         else:
             raise Exception('Unrecognized metric_name %s' % self.metric_name)
 

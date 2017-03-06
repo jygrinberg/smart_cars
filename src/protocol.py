@@ -13,11 +13,9 @@ class Protocol(object):
     def __init__(self, config):
         self.config = config
         self.rewards = {}
-        self.fixed_cost = None
         self.initial_reward = 0.0
         self.unlimited_reward = config.force_unlimited_reward
         self.fixed_actions_per_round = False
-        self.high_priority_probability = None
 
         # Initialize a map from car_id to the car's reward.
         for car_id in xrange(self.config.num_cars):
@@ -114,9 +112,9 @@ class Protocol(object):
             # There is no conflict.
             return position_0, position_1
 
-        # Total bid is the sum of each car's bid plus fixed cost.
-        position_0_bids = sum(actions_0) + len(actions_0)
-        position_1_bids = sum(actions_1) + len(actions_1)
+        # Total bid is total cost of the queue assuming truthful actions.
+        position_0_bids = sum(actions_0) * self.config.high_cost + len(actions_0) - sum(actions_0)
+        position_1_bids = sum(actions_1) * self.config.high_cost + len(actions_1) - sum(actions_1)
 
         # Winner is the position with a higher bid. Ties are broken randomly.
         win_position = position_0
@@ -181,11 +179,9 @@ class VCGProtocol(Protocol):
             # No conflict occurred.
             return 0
 
-        position_0_bids = sum(actions_0) + len(actions_0)
-        position_1_bids = sum(actions_1) + len(actions_1)
-
-        # TODO Replace fixed_cost with high_cost.
-        self.fixed_cost = 1.0
+        # Total bid is total cost of the queue assuming truthful actions.
+        position_0_bids = sum(actions_0) * self.config.high_cost + len(actions_0) - sum(actions_0)
+        position_1_bids = sum(actions_1) * self.config.high_cost + len(actions_1) - sum(actions_1)
 
         if position == position_0:
             car_position_bids = position_0_bids
@@ -197,16 +193,17 @@ class VCGProtocol(Protocol):
         bid_difference = abs(position_0_bids - position_1_bids)
 
         # Compute everyone else's total utility had car not been present.
-        utility_without_car = abs(other_position_bids - (car_position_bids - car_action - self.fixed_cost))
+        utility_without_car = abs(other_position_bids - (car_position_bids -
+                                                         (car_action * self.config.high_cost + 1.0 - car_action)))
 
         # Compute everyone else's total utility given that car was present.
         utility_with_car = abs(other_position_bids - car_position_bids)
         if position == win_position:
             # Car won, so we remove the car's utility by subtracting its utility.
-            utility_with_car -= car_action + self.fixed_cost
+            utility_with_car -= car_action * self.config.high_cost + 1.0 - car_action
         else:
             # Car lost, so we remove the car's utility by adding its utility.
-            utility_with_car += car_action + self.fixed_cost
+            utility_with_car += car_action * self.config.high_cost + 1.0 - car_action
 
         externality = utility_without_car - utility_with_car
 
