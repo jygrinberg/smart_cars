@@ -19,6 +19,8 @@ def getProtocolClass(protocol_class_name):
         return ButtonProtocol
     if protocol_class_name == 'optimal':
         return OptimalProtocol
+    if protocol_class_name == 'generalized_optimal':
+        return GeneralizedOptimalProtocol
     if protocol_class_name == 'optimal_random':
         return OptimalRandomProtocol
     raise Exception('Unrecognized protocol class name: %s' % protocol_class_name)
@@ -67,3 +69,69 @@ def fixedCostToHighCost(fixed_cost):
 
 def highCostToFixedCost(high_cost):
     return 1.0 / (high_cost - 1)
+
+##################
+# Board helpers. #
+##################
+# The road network is modeled as a grid of one-way streets.
+# Street ids 1, 5, 9, etc. go down/right.
+# Street ids 3, 7, 11, etc. go up/left.
+
+def getPositionDirection(x, y):
+    if x % 4 == 1:
+        # Car is moving down.
+        return 0, 1
+    elif x % 4 == 3:
+        # Car is moving up.
+        return 0, -1
+    elif y % 4 == 1:
+        # Car is moving right.
+        return 1, 0
+    else:
+        # Car is moving left.
+        return -1, 0
+
+def getUpcomingQueue(x, y, num_intersections=1):
+    dx, dy = getPositionDirection(x, y)
+    return x + 2 * dx * num_intersections, y + 2 * dy * num_intersections
+
+def isInBounds(x, y, board):
+    return 0 <= x < len(board) and 0 <= y < len(board[0])
+
+def isDestination(x, y, board):
+    if x == 0 or y == 0 or x == len(board) - 1 or y == len(board[0]):
+        return True
+    return False
+
+def getCompetingQueuePosition(x, y):
+    dx, dy = getPositionDirection(x, y)
+
+    intersection_x = x + dx
+    intersection_y = y + dy
+    if abs(dx) == 1:
+        # Car is moving horizontally.
+        if intersection_x % 4 == 1:
+            # Intersecting road is moving down.
+            return intersection_x, intersection_y - 1
+        else:
+            # Intersecting road is moving up.
+            return intersection_x, intersection_y + 1
+    else:
+        # Car is moving vertically.
+        if intersection_y % 4 == 1:
+            # Intersecting road is moving right.
+            return intersection_x - 1, intersection_y
+        else:
+            # Intersecting road is moving left.
+            return intersection_x + 1, intersection_y
+
+def getQueueCost(queue, high_cost):
+    # if isDestination(x, y, board):
+    #     raise Exception('Attempting to get the queue cost for a destination position.')
+    #
+    # if not isInBounds(x, y, board):
+    #     raise Exception('Attempting to get the queue cost for an out-of-bounds position: (%d, %d)' % (x, y))
+    return sum([high_cost * car.priority + 1 * (1 - car.priority) for car in queue])
+
+def getCarCost(car, high_cost):
+    return high_cost * car.priority + 1 * (1 - car.priority)

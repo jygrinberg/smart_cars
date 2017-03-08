@@ -238,8 +238,9 @@ class GameState:
                     actions_list[1].append(action)
 
             # Determine which position wins.
-            win_position, lose_position = self.config.protocol.getWinLosePositions(position_0, actions_list[0], position_1,
-                                                                            actions_list[1])
+            win_position, lose_position = self.config.protocol.getWinLosePositions(position_0, actions_list[0],
+                                                                                   position_1, actions_list[1],
+                                                                                   self.board)
 
             # Store the win and lose positions.
             win_positions.add(win_position)
