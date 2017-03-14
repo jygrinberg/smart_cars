@@ -95,11 +95,20 @@ def getUpcomingQueue(x, y, num_intersections=1):
     dx, dy = getPositionDirection(x, y)
     return x + 2 * dx * num_intersections, y + 2 * dy * num_intersections
 
+def getNextIntersection(x, y, num_intersections=1):
+    dx, dy = getPositionDirection(x, y)
+    return x + dx * num_intersections, y + dy * num_intersections
+
 def isInBounds(x, y, board):
     return 0 <= x < len(board) and 0 <= y < len(board[0])
 
 def isDestination(x, y, board):
     if x == 0 or y == 0 or x == len(board) - 1 or y == len(board[0]):
+        return True
+    return False
+
+def isIntersection(x, y, board):
+    if x % 2 == 1 and y % 2 == 1:
         return True
     return False
 

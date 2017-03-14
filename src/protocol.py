@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import random
 import util
+import copy
 
 class Protocol(object):
     '''
@@ -22,16 +23,15 @@ class Protocol(object):
             self.rewards[car_id] = self.initial_reward
 
     @abstractmethod
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
         """
         Identifies the 'winning' position in the conflict (the first car in the winning position is the one that gets to
-        proceed into the intersection), and the 'losing' position in the conflict (the cars in the losing position do
-        not move).
+        proceed into the intersection). Cars in the 'losing' position in the conflict do not move.
         :param position_0: (x,y) tuple coordinates of one of the positions involved in the conflict.
         :param actions_0: List of actions for each car in position_0.
         :param position_1: (x,y) tuple coordinates of one of the positions involved in the conflict.
         :param actions_1: List of actions for each car in position_1.
-        :param board: List of lists of queues. The queue at (x,y) represents the queue of cars at that position.
+        :param game_state: GameState object storing the state of the simulation for the current round.
         :return: Winning position (x,y), losing position  (x,y)
         """
         pass
@@ -108,16 +108,15 @@ class Protocol(object):
                 sum += self.initial_reward
         return sum
 
-    def _getOptimalWinLosePositions(self, position_0, actions_0, position_1, actions_1, board, num_iterations=1):
+    def _getOptimalWinPosition(self, position_0, actions_0, position_1, actions_1, game_state, num_iterations=1):
         """
         :param num_iterations: Number of iterations to simulate when computing optimal win position.
         """
         if position_1 is None:
             # There is no conflict.
-            return position_0, position_1
+            return position_0
 
         win_position = position_0
-        lose_position = position_1
 
         if num_iterations == 1:
             # Total bid is total cost of the queue assuming truthful actions.
@@ -128,61 +127,94 @@ class Protocol(object):
             if position_0_bids > position_1_bids or \
                     (position_0_bids == position_1_bids and random.choice([True, False])):
                 win_position = position_0
-                lose_position = position_1
             else:
                 win_position = position_1
-                lose_position = position_0
-        elif num_iterations == 2:
-            def getCost(this_x, this_y, other_x, other_y):
-                next_x, next_y = util.getUpcomingQueue(this_x, this_y, num_intersections=1)
-                if util.isDestination(next_x, next_y, board):
-                    # If this position wins, this arrives at its destination.
-                    return 0
+        elif num_iterations >= 2:
+            # def getCost(this_x, this_y, other_x, other_y):
+            #     next_x, next_y = util.getUpcomingQueue(this_x, this_y, num_intersections=1)
+            #     if util.isDestination(next_x, next_y, board):
+            #         # If this position wins, this arrives at its destination.
+            #         return 0
+            #
+            #     # Minimum cost is the cost of the competing queue.
+            #     cost = util.getQueueCost(board[other_x][other_y], self.config.high_cost)
+            #
+            #     # No additional cost if next has no competition.
+            #     competing_x, competing_y = util.getCompetingQueuePosition(next_x, next_y)
+            #     if util.isInBounds(competing_x, competing_y, board) and len(board[competing_x][competing_y]) == 0:
+            #         return cost
+            #
+            #     # Simulate the next intersection randomly.
+            #     if random.random() > 0.5:
+            #         # This position won.
+            #         num_cars_in_my_queue = len(board[next_x][next_y]) - 1
+            #         if num_cars_in_my_queue > 0:
+            #             # My car would not end up first in the queue.
+            #             return float('inf')
+            #         else:
+            #             # Externality is the cost of the competing queue.
+            #             if util.isInBounds(competing_x, competing_y, board):
+            #                 cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
+            #             return cost
+            #     else:
+            #         # Competing position won.
+            #         num_cars_in_my_queue = len(board[next_x][next_y])
+            #         if num_cars_in_my_queue > 0:
+            #             # My car would not end up first in the queue.
+            #             return float('inf')
+            #         else:
+            #             # Externality is the cost of the competing queue, ignoring the first car.
+            #             if util.isInBounds(competing_x, competing_y, board):
+            #                 cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
+            #                 if len(board[competing_x][competing_y]) > 0:
+            #                     cost -= util.getCarCost(board[competing_x][competing_y][0], self.config.high_cost)
+            #             return cost
+            #
+            # position_0_cost = getCost(position_0[0], position_0[1], position_1[0], position_1[1])
+            # position_1_cost = getCost(position_1[0], position_1[1], position_0[0], position_0[1])
 
-                # Minimum cost is the cost of the competing queue.
-                cost = util.getQueueCost(board[other_x][other_y], self.config.high_cost)
+            def getCost(position_a, position_b):
+                # Create a copy of the game that will be simulated using RandomProtocol.
+                game = copy.deepcopy(game_state)
+                game.config.protocol = RandomProtocol(game.config)
 
-                # Simulate the next intersection randomly.
-                if random.random() > 0.5:
-                    # This position won.
-                    num_cars_in_my_queue = len(board[next_x][next_y]) - 1
-                    if num_cars_in_my_queue > 0:
-                        # My car would not end up first in the queue.
-                        return float('inf')
+                cost = util.getQueueCost(game.board[position_b[0]][position_b[1]], self.config.high_cost)
+                for iteration in xrange(num_iterations):
+                    if game.isEnd():
+                        break
+
+                    # Simulate one iteration of the game. If this is the first simulated round, let position_a win.
+                    if iteration == 0:
+                        game.updateState(automatic_win_position=position_a)
                     else:
-                        # Externality is the cost of the competing queue.
-                        competing_x, competing_y = util.getCompetingQueuePosition(next_x, next_y)
-                        if util.isInBounds(competing_x, competing_y, board):
-                            cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
-                        return cost
-                else:
-                    # Competing position won.
-                    num_cars_in_my_queue = len(board[next_x][next_y])
-                    if num_cars_in_my_queue > 0:
-                        # My car would not end up first in the queue.
-                        return float('inf')
-                    else:
-                        # Externality is the cost of the competing queue, ignoring the first car.
-                        competing_x, competing_y = util.getCompetingQueuePosition(next_x, next_y)
-                        if util.isInBounds(competing_x, competing_y, board):
-                            cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
-                            if len(board[competing_x][competing_y]) > 0:
-                                cost -= util.getCarCost(board[competing_x][competing_y][0], self.config.high_cost)
-                        return cost
+                        game.updateState()
 
-            position_0_cost = getCost(position_0[0], position_0[1], position_1[0], position_1[1])
-            position_1_cost = getCost(position_1[0], position_1[1], position_0[0], position_0[1])
+                    # If the car is not first in a queue, the cost is infinite.
+                    curr_x, curr_y = util.getNextIntersection(position_a[0], position_a[1], iteration + 1)
+                    if len(game.board[curr_x][curr_y]) > 1:
+                        cost = float('inf')
+                        break
+
+                    # If the car is is in conflict with a non-empty queue, add the cost of the queue.
+                    if not util.isIntersection(curr_x, curr_y, game.board):
+                        competing_x, competing_y = util.getCompetingQueuePosition(curr_x, curr_y)
+                        if util.isInBounds(competing_x, competing_y, game.board):
+                            cost += util.getQueueCost(game.board[competing_x][competing_y], game.config.high_cost)
+                            break
+
+                return cost
+
+            position_0_cost = getCost(position_0, position_1)
+            position_1_cost = getCost(position_1, position_0)
 
             # Winner is the position with a lower bid. Ties are broken randomly.
             if position_0_cost < position_1_cost or \
                     (position_0_cost == position_1_cost and random.choice([True, False])):
                 win_position = position_0
-                lose_position = position_1
             else:
                 win_position = position_1
-                lose_position = position_0
 
-        return win_position, lose_position
+        return win_position
 
 
 class RandomProtocol(Protocol):
@@ -195,20 +227,20 @@ class RandomProtocol(Protocol):
         # Set reward to unlimited in order to make everything completely random.
         self.unlimited_reward = True
 
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
         if position_1 is None:
-            return position_0, position_1
+            return position_0
 
         # If only one position has cars, pick that position.
         if len(actions_0) > 0 and len(actions_1) == 0:
-            return position_0, position_1
+            return position_0
         elif len(actions_1) > 0 and len(actions_0) == 0:
-            return position_1, position_0
+            return position_1
 
         # Otherwise, arbitrarily pick win and lose positions.
         if random.choice([True, False]):
-            return position_0, position_1
-        return position_1, position_0
+            return position_0
+        return position_1
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         return 0
@@ -230,8 +262,8 @@ class VCGProtocol(Protocol):
         super(VCGProtocol, self).__init__(config)
         self.voting_externality = voting_externality
 
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
-        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1, board)
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
+        return self._getOptimalWinPosition(position_0, actions_0, position_1, actions_1, game_state)
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         if position_1 is None:
@@ -378,8 +410,8 @@ class ButtonProtocol(Protocol):
             raise Exception('No action found for car_id=%d' % car_id)
         return self.car_round_actions[car_id]
 
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
-        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1, board)
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
+        return self._getOptimalWinPosition(position_0, actions_0, position_1, actions_1, game_state)
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         # Reward is only updated at the beginning of each round.
@@ -400,9 +432,9 @@ class OptimalProtocol(Protocol):
         self.unlimited_reward = True
         self.num_iterations = num_iterations
 
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
-        return self._getOptimalWinLosePositions(position_0, actions_0, position_1, actions_1, board,
-                                                self.num_iterations)
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
+        return self._getOptimalWinPosition(position_0, actions_0, position_1, actions_1, game_state,
+                                           self.num_iterations)
 
     def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
         return 0
@@ -424,23 +456,24 @@ class OptimalRandomProtocol(OptimalProtocol):
     This protocol implements OptimalProtocol 50% of the time and RandomProtocol 50% of the time.
     """
 
-    def getWinLosePositions(self, position_0, actions_0, position_1, actions_1, board):
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
         if position_1 is None:
-            return position_0, position_1
+            return position_0
 
         # If only one position has cars, pick that position.
         if len(actions_0) > 0 and len(actions_1) == 0:
-            return position_0, position_1
+            return position_0
         elif len(actions_1) > 0 and len(actions_0) == 0:
-            return position_1, position_0
+            return position_1
 
         optimal_probability = 0.5
 
         if random.random() < optimal_probability:
             # Pick an optimal choice.
-            return super(OptimalRandomProtocol, self).getWinLosePositions(position_0, actions_0, position_1, actions_1)
+            return super(OptimalRandomProtocol, self).getWinPosition(position_0, actions_0, position_1, actions_1,
+                                                                     game_state)
 
         # Otherwise, arbitrarily pick win and lose positions.
         if random.choice([True, False]):
-            return position_0, position_1
-        return position_1, position_0
+            return position_0
+        return position_1

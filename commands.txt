@@ -1,4 +1,4 @@
--p vcg -c truthful --random_seed=0 --num_cars=10 --num_roads=1 --num_rounds=10 --fixed_cost=0.1 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv
+python run.py --protocol=random --car=truthful --random_seed=0 --num_rounds=10 --high_cost=5 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv
 
 python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max=10 --variable_step=1 --metric_name=my_cost --num_rounds=10000 --num_cars=10 --num_roads=1 --high_priority_probability=0.3 --random_seed=0
 
@@ -11,7 +11,7 @@ python run.py --plot --variable_name=high_priority_probability --variable_min=0.
 python run.py --plot --variable_name=high_cost --variable_min=1.1 --variable_max=10 --variable_step=1 --metric_name=cost --num_rounds=10000 --num_cars=10 --num_roads=1 --high_priority_probability=0.3 --random_seed=0 --contexts=b_o_r
 
 # Big network, increasing number of cars, o_r
-python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=1000 --variable_step=100 --metric_name=cost --num_rounds=10 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
+python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=1000 --variable_step=100 --metric_name=cost --num_rounds=1 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
 
 python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=10000 --variable_step=1000 --metric_name=cost --num_rounds=10 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=o_r
 
@@ -35,3 +35,9 @@ python run.py --plot --variable_name=num_cars --variable_min=1 --variable_max=10
 --num_rounds=10 --num_cars=20 --num_roads=3 --high_priority_probability=0.3 --high_cost=4 --random_seed=0 --protocol=random --car=random --animate
 --num_rounds=10 --high_priority_probability=0.3 --high_cost=10 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv --animate --protocol=optimal --car=truthful
 --num_rounds=10 --num_cars=500 --num_roads=7 --high_priority_probability=0.3 --high_cost=4 --random_seed=0 --protocol=random --car=random --animate
+
+
+
+--protocol=generalized_optimal --car=truthful --random_seed=0 --num_rounds=10 --high_cost=5 --config_filename=/home/josh/grade_17/cs269i/cars/configs/bad_case.csv --animate
+
+--plot --variable_name=num_cars --variable_min=1000 --variable_max=1000 --variable_step=500 --metric_name=cost --num_rounds=5 --high_cost=4 --num_roads=20 --high_priority_probability=0.3 --random_seed=0 --contexts=g_r

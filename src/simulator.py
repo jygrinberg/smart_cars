@@ -53,7 +53,7 @@ class Simulator:
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.config.num_rounds):
             # Initialize the game.
-            game = GameState(self.config, round_id, self.cars, self.my_car)
+            game = GameState(None, self.config, round_id, self.cars, self.my_car)
             game.printState(round_id, 0)
             if self.animator:
                 self.animator.initRound(game.board, game.cost_board, round_id, 0)
@@ -128,7 +128,14 @@ class GameState:
     The queues at road segments can have any number of cars.
     """
 
-    def __init__(self, config, round_id, cars, my_car):
+    def __init__(self, game_state=None, config=None, round_id=None, cars=None, my_car=None):
+        if game_state:
+            # Create a copy of game_state.
+            pass
+        else:
+            # Initialize a new GameState using the provided parameters.
+            pass
+
         self.config = config
         self.my_car = my_car
 
@@ -169,10 +176,13 @@ class GameState:
             for car in self.cars:
                 self.config.protocol.setCarRoundAction(car.car_id, car.getAction(car.position, 1, None, 0))
 
-    def updateState(self):
+    def updateState(self, automatic_win_position=None):
         """
         Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
         simulation. Also updates self.win_next_positions with a list of (win_position, next_position) tuples.
+
+        If automatic_win_position is not None, that position automatically wins. This is useful when simulating the
+        effects of letting one car win.
         """
         # Increment the total weighted travel time and remove all the arrived cars from self.cars.
         travelling_cars = []
@@ -238,17 +248,26 @@ class GameState:
                     actions_list[1].append(action)
 
             # Determine which position wins.
-            win_position, lose_position = self.config.protocol.getWinLosePositions(position_0, actions_list[0],
-                                                                                   position_1, actions_list[1],
-                                                                                   self.board)
+            win_position = None
+            if automatic_win_position and \
+                    (automatic_win_position == position_0 or automatic_win_position == position_1):
+                # An automatic_win_position was provided, and one of the positions in this conflict is
+                # automatic_win_position.
+                if automatic_win_position == position_0:
+                    win_position = position_0
+                else:
+                    win_position = position_1
+            else:
+                win_position = self.config.protocol.getWinPosition(position_0, actions_list[0], position_1,
+                                                                   actions_list[1], self)
 
-            # Store the win and lose positions.
+            # Store the win position.
             win_positions.add(win_position)
 
             # Reward cars.
             for car in cars:
-                self.config.protocol.updateCarReward(car.car_id, car.position, win_position, actions[car.car_id], position_0,
-                                              actions_list[0], position_1, actions_list[1])
+                self.config.protocol.updateCarReward(car.car_id, car.position, win_position, actions[car.car_id],
+                                                     position_0, actions_list[0], position_1, actions_list[1])
 
         # Move the cars that are first in the queues in the winning positions. Inform these cars of their new positions.
         # Also, populate win_next_positions.
