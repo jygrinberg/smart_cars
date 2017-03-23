@@ -175,10 +175,12 @@ class Protocol(object):
 
             def getCost(position_a, position_b):
                 # Create a copy of the game that will be simulated using RandomProtocol.
-                game = copy.deepcopy(game_state)
+                game = game_state.getCopy(position_a, num_iterations=2)
+                old_protocol = game.config.protocol
                 game.config.protocol = RandomProtocol(game.config)
 
                 cost = util.getQueueCost(game.board[position_b[0]][position_b[1]], self.config.high_cost)
+                self_cost = util.getCarCost(game.board[position_a[0]][position_a[1]][0], self.config.high_cost)
                 for iteration in xrange(num_iterations):
                     if game.isEnd():
                         break
@@ -192,7 +194,8 @@ class Protocol(object):
                     # If the car is not first in a queue, the cost is infinite.
                     curr_x, curr_y = util.getNextIntersection(position_a[0], position_a[1], iteration + 1)
                     if len(game.board[curr_x][curr_y]) > 1:
-                        cost = float('inf')
+                        # cost = float('inf')
+                        cost += self_cost
                         break
 
                     # If the car is is in conflict with a non-empty queue, add the cost of the queue.
@@ -202,6 +205,7 @@ class Protocol(object):
                             cost += util.getQueueCost(game.board[competing_x][competing_y], game.config.high_cost)
                             break
 
+                game_state.config.protocol = old_protocol
                 return cost
 
             position_0_cost = getCost(position_0, position_1)

@@ -143,4 +143,14 @@ def getQueueCost(queue, high_cost):
     return sum([high_cost * car.priority + 1 * (1 - car.priority) for car in queue])
 
 def getCarCost(car, high_cost):
+    """
+    Returns the cost of the car per iteration.
+    """
     return high_cost * car.priority + 1 * (1 - car.priority)
+
+def getCarOptimalCost(car, high_cost):
+    """
+    Returns a lower bound on the cost the provided car can incur (assumes cars can drive through each other).
+    """
+    return getCarCost(car, high_cost) * \
+           (abs(car.position[0] - car.destination[0]) + abs(car.position[1] - car.destination[1]))

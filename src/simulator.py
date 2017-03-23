@@ -53,7 +53,7 @@ class Simulator:
         # Run the simulation for num_rounds times.
         for round_id in xrange(self.config.num_rounds):
             # Initialize the game.
-            game = GameState(None, self.config, round_id, self.cars, self.my_car)
+            game = GameState(self.config, round_id, self.cars, self.my_car)
             game.printState(round_id, 0)
             if self.animator:
                 self.animator.initRound(game.board, game.cost_board, round_id, 0)
@@ -69,7 +69,7 @@ class Simulator:
                                                   iteration_id, game.total_cost)
 
             # Keep track of stats from the round.
-            self.simulation_costs.append(game.total_cost)
+            self.simulation_costs.append(game.getCompetitiveRatio())
             self.simulation_rewards.append(self.config.protocol.getTotalReward(self.config.num_cars))
             if self.my_car is not None:
                 self.my_car_costs.append(game.my_car_cost)
@@ -93,7 +93,7 @@ class Simulator:
         """
         Returns the mean cost per car per round.
         """
-        return sum(self.simulation_costs) / float(self.config.num_rounds) / float(self.config.num_cars)
+        return sum(self.simulation_costs) / float(self.config.num_rounds) #/ float(self.config.num_cars)
 
     def getMeanReward(self):
         """
@@ -128,14 +128,7 @@ class GameState:
     The queues at road segments can have any number of cars.
     """
 
-    def __init__(self, game_state=None, config=None, round_id=None, cars=None, my_car=None):
-        if game_state:
-            # Create a copy of game_state.
-            pass
-        else:
-            # Initialize a new GameState using the provided parameters.
-            pass
-
+    def __init__(self, config, round_id, cars, my_car=None, init_new_trips=True):
         self.config = config
         self.my_car = my_car
 
@@ -151,30 +144,39 @@ class GameState:
 
         # Initialize a trip for each car. Add each car to the board. Also, randomly shuffle the order of the cars.
         self.cars = cars
-        random.shuffle(self.cars)
+        if init_new_trips:
+            random.shuffle(self.cars)
         for car in self.cars:
-            # Get the starting position, destination, route from origin to destination, and priority for the trip. The
-            # route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
-            # 'right'}, num_steps).
-            origin, destination, route, priority = self.config.getNextCarTrip(round_id, car.car_id)
+            position = car.position
 
-            # Initialize the car's trip.
-            car.initTrip(origin, destination, route, priority)
+            if init_new_trips:
+                # Get the starting position, destination, route from origin to destination, and priority for the trip. The
+                # route is a list of 'directions', where each direction is a tuple of the form ({'up', 'down', 'left', or
+                # 'right'}, num_steps).
+                origin, destination, route, priority = self.config.getNextCarTrip(round_id, car.car_id)
+                position = origin
+
+                # Initialize the car's trip.
+                car.initTrip(origin, destination, route, priority)
 
             # Add the car to the board.
-            self.board[origin[0]][origin[1]].append(car)
-            self.cost_board[origin[0]][origin[1]] += self.getCarCost(car)
-
-        # Initialize the total cost, and number of cars not yet arrived.
-        self.total_cost = 0.0
-        self.my_car_cost = 0.0
-        self.num_cars_travelling = len(cars)
+            self.board[position[0]][position[1]].append(car)
+            self.cost_board[position[0]][position[1]] += self.getCarCost(car)
 
         # Call the protocol functions that need to be called if the protocol involves fixed actions per round.
-        if self.config.protocol.fixed_actions_per_round:
+        if init_new_trips and self.config.protocol.fixed_actions_per_round:
             self.config.protocol.initRound(round_id)
             for car in self.cars:
                 self.config.protocol.setCarRoundAction(car.car_id, car.getAction(car.position, 1, None, 0))
+
+        # Initialize the total cost, my_car cost, optimal cost, and number of cars not yet arrived.
+        self.total_cost = 0.0
+        self.my_car_cost = 0.0
+        self.optimal_cost = sum([util.getCarOptimalCost(car, self.config.high_cost) for car in self.cars])
+        self.num_cars_travelling = len(cars)
+
+    def getCompetitiveRatio(self):
+        return self.total_cost / self.optimal_cost
 
     def updateState(self, automatic_win_position=None):
         """
@@ -303,6 +305,35 @@ class GameState:
         """
         return self.config.high_cost * car.priority + 1 * (1 - car.priority)
 
+    def getCopy(self, position, num_iterations=2):
+        if num_iterations != 2:
+            raise Exception('Have not yet implemented copying a GameState for > 2 iterations.')
+
+        # Get copies of all the cars relevant for a two iteration simulation.
+        cars = []
+        cars += self._getCarCopies(position, 1)
+
+        next_1_position = util.getNextIntersection(position[0], position[1], 1)
+        cars += self._getCarCopies(next_1_position)
+
+        next_2_position = util.getNextIntersection(position[0], position[1], 2)
+        cars += self._getCarCopies(next_2_position, 3)
+
+        competing_position = util.getCompetingQueuePosition(next_2_position[0], next_2_position[1])
+        cars += self._getCarCopies(competing_position)
+
+        competing_1_position = util.getNextIntersection(competing_position[0], competing_position[1], -1)
+        cars += self._getCarCopies(competing_1_position)
+
+        competing_2_position = util.getNextIntersection(competing_position[0], competing_position[1], -2)
+        cars += self._getCarCopies(competing_2_position, 1)
+
+        competing_2_competing_position = util.getCompetingQueuePosition(competing_2_position[0],
+                                                                        competing_2_position[1])
+        cars += self._getCarCopies(competing_2_competing_position, 1)
+
+        return GameState(self.config, 0, cars, init_new_trips=False)
+
     def printState(self, round_id, iteration_id):
         """
         Prints the number of cars at each position in the board.
@@ -347,3 +378,16 @@ class GameState:
                 else:
                     print('  ', end='')
             print('')
+
+
+    def _getCarCopies(self, position, max_num_cars=None):
+        if not util.isInBounds(position[0], position[1], self.board):
+            return []
+
+        cars = []
+        if max_num_cars is None:
+            max_num_cars = len(self.board[position[0]][position[1]])
+        for i in xrange(min(len(self.board[position[0]][position[1]]), max_num_cars)):
+            car = copy.deepcopy(self.board[position[0]][position[1]][i])
+            cars.append(car)
+        return cars

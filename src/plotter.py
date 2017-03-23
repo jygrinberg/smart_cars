@@ -50,9 +50,11 @@ class Plotter:
                          'label': 'Optimal Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
-        elif options.contexts == 'g_r':
+        elif options.contexts == 'g_o_r':
             contexts = [{'protocol': 'generalized_optimal', 'car': 'truthful',
                          'label': 'Generalized Optimal Greedy'},
+                        {'protocol': 'optimal', 'car': 'truthful',
+                         'label': 'Optimal Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'or_o_r':
