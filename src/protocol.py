@@ -130,49 +130,6 @@ class Protocol(object):
             else:
                 win_position = position_1
         elif num_iterations >= 2:
-            # def getCost(this_x, this_y, other_x, other_y):
-            #     next_x, next_y = util.getUpcomingQueue(this_x, this_y, num_intersections=1)
-            #     if util.isDestination(next_x, next_y, board):
-            #         # If this position wins, this arrives at its destination.
-            #         return 0
-            #
-            #     # Minimum cost is the cost of the competing queue.
-            #     cost = util.getQueueCost(board[other_x][other_y], self.config.high_cost)
-            #
-            #     # No additional cost if next has no competition.
-            #     competing_x, competing_y = util.getCompetingQueuePosition(next_x, next_y)
-            #     if util.isInBounds(competing_x, competing_y, board) and len(board[competing_x][competing_y]) == 0:
-            #         return cost
-            #
-            #     # Simulate the next intersection randomly.
-            #     if random.random() > 0.5:
-            #         # This position won.
-            #         num_cars_in_my_queue = len(board[next_x][next_y]) - 1
-            #         if num_cars_in_my_queue > 0:
-            #             # My car would not end up first in the queue.
-            #             return float('inf')
-            #         else:
-            #             # Externality is the cost of the competing queue.
-            #             if util.isInBounds(competing_x, competing_y, board):
-            #                 cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
-            #             return cost
-            #     else:
-            #         # Competing position won.
-            #         num_cars_in_my_queue = len(board[next_x][next_y])
-            #         if num_cars_in_my_queue > 0:
-            #             # My car would not end up first in the queue.
-            #             return float('inf')
-            #         else:
-            #             # Externality is the cost of the competing queue, ignoring the first car.
-            #             if util.isInBounds(competing_x, competing_y, board):
-            #                 cost += util.getQueueCost(board[competing_x][competing_y], self.config.high_cost)
-            #                 if len(board[competing_x][competing_y]) > 0:
-            #                     cost -= util.getCarCost(board[competing_x][competing_y][0], self.config.high_cost)
-            #             return cost
-            #
-            # position_0_cost = getCost(position_0[0], position_0[1], position_1[0], position_1[1])
-            # position_1_cost = getCost(position_1[0], position_1[1], position_0[0], position_0[1])
-
             def getCost(position_a, position_b):
                 # Create a copy of the game that will be simulated using RandomProtocol.
                 game = game_state.getCopy(position_a, num_iterations=2)
