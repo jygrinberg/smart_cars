@@ -51,10 +51,23 @@ class Plotter:
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'g_o_r':
-            contexts = [{'protocol': 'generalized_optimal', 'car': 'truthful',
-                         'label': 'Generalized Optimal Greedy'},
+            contexts = [{'protocol': 'generalized_greedy_2', 'car': 'truthful',
+                         'label': 'Greedy (Externality=2)'},
                         {'protocol': 'optimal', 'car': 'truthful',
                          'label': 'Optimal Greedy'},
+                        {'protocol': 'random', 'car': 'truthful',
+                         'label': 'Random'}]
+        elif options.contexts == 'gg_r':
+            contexts = [{'protocol': 'generalized_greedy_0', 'car': 'truthful',
+                         'label': 'Greedy (Externality=0)'},
+                        {'protocol': 'generalized_greedy_2', 'car': 'truthful',
+                         'label': 'Greedy (Externality=2)'},
+                        {'protocol': 'generalized_greedy_4', 'car': 'truthful',
+                         'label': 'Greedy (Externality=4)'},
+                        {'protocol': 'generalized_greedy_6', 'car': 'truthful',
+                         'label': 'Greedy (Externality=6)'},
+                        {'protocol': 'generalized_greedy_8', 'car': 'truthful',
+                         'label': 'Greedy (Externality=8)'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'or_o_r':
@@ -149,7 +162,7 @@ class Plotter:
 
         # Get a human readable string for the metric name.
         if self.metric_name == 'cost':
-            metric_name_pretty = 'Cost (per car per round)'
+            metric_name_pretty = 'Cost (per round)'
         elif self.metric_name == 'reward':
             metric_name_pretty = 'Reward (per car per round)'
         elif self.metric_name == 'my_cost':

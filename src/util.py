@@ -19,8 +19,16 @@ def getProtocolClass(protocol_class_name):
         return ButtonProtocol
     if protocol_class_name == 'optimal':
         return OptimalProtocol
-    if protocol_class_name == 'generalized_optimal':
-        return GeneralizedOptimalProtocol
+    if protocol_class_name == 'generalized_greedy_0':
+        return GeneralizedGreedyProtocol0
+    if protocol_class_name == 'generalized_greedy_2':
+        return GeneralizedGreedyProtocol2
+    if protocol_class_name == 'generalized_greedy_4':
+        return GeneralizedGreedyProtocol4
+    if protocol_class_name == 'generalized_greedy_6':
+        return GeneralizedGreedyProtocol6
+    if protocol_class_name == 'generalized_greedy_8':
+        return GeneralizedGreedyProtocol8
     if protocol_class_name == 'optimal_random':
         return OptimalRandomProtocol
     raise Exception('Unrecognized protocol class name: %s' % protocol_class_name)

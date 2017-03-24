@@ -129,125 +129,86 @@ class Protocol(object):
                 win_position = position_0
             else:
                 win_position = position_1
-        elif num_iterations >= 2:
-            def getCost(position_a, position_b):
-                # Create a copy of the game that will be simulated using RandomProtocol.
-                game = game_state.getCopy(position_a, num_iterations=2)
-                old_protocol = game.config.protocol
-                game.config.protocol = RandomProtocol(game.config)
+        else:
+            def getExternality(game_state, iteration, position):
+                # Keep a pointer to the main simulation's protocol.
+                old_protocol = game_state.config.protocol
+                game_state.config.protocol = RandomProtocol(game_state.config)
 
-                cost = util.getQueueCost(game.board[position_b[0]][position_b[1]], self.config.high_cost)
-                self_cost = util.getCarCost(game.board[position_a[0]][position_a[1]][0], self.config.high_cost)
-                for iteration in xrange(num_iterations):
-                    if game.isEnd():
-                        break
+                # Compute externality.
+                cost = getExternalityRec(game_state, iteration, position)
 
-                    # Simulate one iteration of the game. If this is the first simulated round, let position_a win.
-                    if iteration == 0:
-                        game.updateState(automatic_win_position=position_a)
-                    else:
-                        game.updateState()
-
-                    # If the car is not first in a queue, the cost is infinite.
-                    curr_x, curr_y = util.getNextPosition(position_a, iteration + 1)
-                    if len(game.board[curr_x][curr_y]) > 1:
-                        cost = float('inf')
-                        # cost += self_cost
-                        break
-
-                    # If the car is is in conflict with a non-empty queue, add the cost of the queue.
-                    if not util.isIntersection((curr_x, curr_y)):
-                        competing_position = util.getCompetingPosition((curr_x, curr_y))
-                        if util.isInBounds(competing_position, game.board):
-                            cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
-                                                      game.config.high_cost)
-                            break
-
+                # Set game_state's protocol back to the original protocol.
                 game_state.config.protocol = old_protocol
                 return cost
 
-            position_0_cost = getCost(position_0, position_1)
-            position_1_cost = getCost(position_1, position_0)
+            def getExternalityRec(curr_game_state, num_iterations, position):
+                # Create a copy of the game that will be simulated using RandomProtocol.
+                game = curr_game_state.getCopy(position, num_iterations)
 
-            # def getExternality(game_state, iteration, position):
-            #     # Keep a pointer to the main simulation's protocol.
-            #     old_protocol = game_state.config.protocol
-            #     game_state.config.protocol = RandomProtocol(game_state.config)
-            #
-            #     # Compute externality.
-            #     cost = getExternalityRec(game_state, iteration, position)
-            #
-            #     # Set game_state's protocol back to the original protocol.
-            #     game_state.config.protocol = old_protocol
-            #     return cost
-            #
-            # def getExternalityRec(curr_game_state, num_iterations, position):
-            #     # Create a copy of the game that will be simulated using RandomProtocol.
-            #     game = curr_game_state.getCopy(position, num_iterations)
-            #
-            #     my_car = game.board[position[0]][position[1]][0]
-            #     if my_car.hasArrived():
-            #         return 0
-            #
-            #     competing_position = util.getCompetingPosition(position)
-            #     cost = util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
-            #                              self.config.high_cost)
-            #     self_cost = util.getCarCost(game.board[position[0]][position[1]][0], self.config.high_cost)
-            #     self_queue_cost = util.getQueueCost(game.board[position[0]][position[1]], self.config.high_cost)
-            #
-            #     # Force my_car to win in the first iteration.
-            #     force_win = True
-            #     force_lose = False
-            #
-            #     for curr_iteration in xrange(num_iterations):
-            #         # Simulate one iteration of the game. If this is the first simulated round, let position_a win.
-            #         if force_win:
-            #             game.updateState(automatic_win_position=position)
-            #         elif force_lose:
-            #             game.updateState(automatic_lose_position=position)
-            #         else:
-            #             game.updateState()
-            #         force_win = False
-            #         force_lose = False
-            #
-            #         if my_car.hasArrived():
-            #             break
-            #
-            #         # If the car is not first in a queue, the cost is infinite.
-            #         if game.board[my_car.position[0]][my_car.position[1]][0] is not my_car:
-            #             return float('inf')
-            #             # cost += self_queue_cost
-            #             # continue
-            #
-            #         # If the car is is in conflict with a non-empty queue, determine whether it proceeds or waits for an
-            #         # iteration.
-            #         if not util.isIntersection(my_car.position):
-            #             competing_position = util.getCompetingPosition(my_car.position)
-            #             if util.isInBounds(competing_position, game.board) and \
-            #                             len(game.board[competing_position[0]][competing_position[1]]) > 0:
-            #                 # Car is in a conflict with a non-empty queue.
-            #                 cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
-            #                                           game.config.high_cost)
-            #                 continue
-            #                 externality = getExternality(game, num_iterations - curr_iteration - 1, my_car.position)
-            #                 competing_externality = getExternality(game, num_iterations - curr_iteration - 1,
-            #                                                        competing_position)
-            #
-            #                 if externality > competing_externality or \
-            #                         (externality == competing_externality and random.choice([True, False])):
-            #                     # Car remains where it is.
-            #                     force_lose = True
-            #                     continue
-            #                 else:
-            #                     # Car proceeds. Add the cost of the competing queue.
-            #                     force_win = True
-            #                     cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
-            #                                               game.config.high_cost)
-            #
-            #     return cost
-            #
-            # position_0_cost = getExternality(game_state, num_iterations, position_0)
-            # position_1_cost = getExternality(game_state, num_iterations, position_1)
+                my_car = game.board[position[0]][position[1]][0]
+                if my_car.hasArrived():
+                    return 0
+
+                competing_position = util.getCompetingPosition(position)
+                cost = util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
+                                         self.config.high_cost)
+                self_cost = util.getCarCost(game.board[position[0]][position[1]][0], self.config.high_cost)
+                self_queue_cost = util.getQueueCost(game.board[position[0]][position[1]], self.config.high_cost)
+
+                # Force my_car to win in the first iteration.
+                force_win = True
+                force_lose = False
+
+                for curr_iteration in xrange(num_iterations):
+                    # Simulate one iteration of the game. If this is the first simulated round, let position_a win.
+                    if force_win:
+                        game.updateState(automatic_win_position=position)
+                    elif force_lose:
+                        game.updateState(automatic_lose_position=position)
+                    else:
+                        game.updateState()
+                    force_win = False
+                    force_lose = False
+
+                    if my_car.hasArrived():
+                        break
+
+                    # If the car is not first in a queue, the cost is infinite.
+                    if game.board[my_car.position[0]][my_car.position[1]][0] is not my_car:
+                        # return float('inf')
+                        cost += self_queue_cost
+                        continue
+
+                    # If the car is is in conflict with a non-empty queue, determine whether it proceeds or waits for an
+                    # iteration.
+                    if not util.isIntersection(my_car.position):
+                        competing_position = util.getCompetingPosition(my_car.position)
+                        if util.isInBounds(competing_position, game.board) and \
+                                        len(game.board[competing_position[0]][competing_position[1]]) > 0:
+                            # Car is in a conflict with a non-empty queue.
+                            cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
+                                                      game.config.high_cost)
+                            # continue
+                            externality = getExternality(game, num_iterations - curr_iteration - 1, my_car.position)
+                            competing_externality = getExternality(game, num_iterations - curr_iteration - 1,
+                                                                   competing_position)
+
+                            if externality > competing_externality or \
+                                    (externality == competing_externality and random.choice([True, False])):
+                                # Car remains where it is.
+                                force_lose = True
+                                continue
+                            else:
+                                # Car proceeds. Add the cost of the competing queue.
+                                force_win = True
+                                cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
+                                                          game.config.high_cost)
+
+                return cost
+
+            position_0_cost = getExternality(game_state, num_iterations, position_0)
+            position_1_cost = getExternality(game_state, num_iterations, position_1)
 
             # Winner is the position with a lower bid. Ties are broken randomly.
             if position_0_cost < position_1_cost or \
@@ -482,15 +443,57 @@ class OptimalProtocol(Protocol):
         return 0
 
     def __str__(self):
-        return 'optimal'
+        return 'greedy'
 
 
-class GeneralizedOptimalProtocol(OptimalProtocol):
+class GeneralizedGreedyProtocol0(OptimalProtocol):
+    num_iterations = 0
     def __init__(self, config):
-        super(GeneralizedOptimalProtocol, self).__init__(config, num_iterations=2)
+        self.num_iterations = 0
+        super(GeneralizedGreedyProtocol0, self).__init__(config, num_iterations=self.num_iterations)
 
     def __str__(self):
-        return 'generalized_optimal'
+        return 'greedy_externality_%d' % self.num_iterations
+
+
+class GeneralizedGreedyProtocol2(OptimalProtocol):
+    num_iterations = 0
+    def __init__(self, config):
+        self.num_iterations = 2
+        super(GeneralizedGreedyProtocol2, self).__init__(config, num_iterations=self.num_iterations)
+
+    def __str__(self):
+        return 'greedy_externality_%d' % self.num_iterations
+
+
+class GeneralizedGreedyProtocol4(OptimalProtocol):
+    num_iterations = 0
+    def __init__(self, config):
+        self.num_iterations = 4
+        super(GeneralizedGreedyProtocol4, self).__init__(config, num_iterations=self.num_iterations)
+
+    def __str__(self):
+        return 'greedy_externality_%d' % self.num_iterations
+
+
+class GeneralizedGreedyProtocol6(OptimalProtocol):
+    num_iterations = 0
+    def __init__(self, config):
+        self.num_iterations = 6
+        super(GeneralizedGreedyProtocol6, self).__init__(config, num_iterations=self.num_iterations)
+
+    def __str__(self):
+        return 'greedy_externality_%d' % self.num_iterations
+
+
+class GeneralizedGreedyProtocol8(OptimalProtocol):
+    num_iterations = 0
+    def __init__(self, config):
+        self.num_iterations = 8
+        super(GeneralizedGreedyProtocol8, self).__init__(config, num_iterations=self.num_iterations)
+
+    def __str__(self):
+        return 'greedy_externality_%d' % self.num_iterations
 
 
 class OptimalRandomProtocol(OptimalProtocol):
