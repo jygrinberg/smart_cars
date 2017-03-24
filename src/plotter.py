@@ -45,9 +45,14 @@ class Plotter:
                          'label': 'Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
-        elif options.contexts == 'o_r':
+        elif options.contexts == 'g_r':
             contexts = [{'protocol': 'greedy', 'car': 'truthful',
                          'label': 'Greedy'},
+                        {'protocol': 'random', 'car': 'truthful',
+                         'label': 'Random'}]
+        elif options.contexts == 'm_r':
+            contexts = [{'protocol': 'monte_carlo_greedy', 'car': 'truthful',
+                         'label': 'Monte Carlo Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'g_o_r':
@@ -61,17 +66,17 @@ class Plotter:
             contexts = [{'protocol': 'generalized_greedy_0', 'car': 'truthful',
                          'label': 'Greedy (Externality=0)'},
                         {'protocol': 'generalized_greedy_2', 'car': 'truthful',
-                         'label': 'Greedy (Externality=2)'},
+                         'label': 'Greedy (Externality=1)'},
                         {'protocol': 'generalized_greedy_4', 'car': 'truthful',
-                         'label': 'Greedy (Externality=4)'},
+                         'label': 'Greedy (Externality=2)'},
                         {'protocol': 'generalized_greedy_6', 'car': 'truthful',
-                         'label': 'Greedy (Externality=6)'},
-                        {'protocol': 'generalized_greedy_8', 'car': 'truthful',
-                         'label': 'Greedy (Externality=8)'},
+                         'label': 'Greedy (Externality=3)'},
+                        # {'protocol': 'generalized_greedy_8', 'car': 'truthful',
+                        # 'label': 'Greedy (Externality=4)'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
-        elif options.contexts == 'or_o_r':
-            contexts = [{'protocol': 'greedy_random', 'car': 'truthful',
+        elif options.contexts == 'rg_o_r':
+            contexts = [{'protocol': 'random_greedy', 'car': 'truthful',
                          'label': '50% Greedy 50% Random'},
                         {'protocol': 'greedy', 'car': 'truthful',
                          'label': 'Greedy'},

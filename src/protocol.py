@@ -214,7 +214,7 @@ class Protocol(object):
             position_0_cost = getExternality(game_state, num_iterations, position_0)
             position_1_cost = getExternality(game_state, num_iterations, position_1)
 
-            # Winner is the position with a lower bid. Ties are broken randomly.
+            # Winner is the position with a lower cost. Ties are broken randomly.
             if position_0_cost < position_1_cost or \
                     (position_0_cost == position_1_cost and random.choice([True, False])):
                 win_position = position_0
@@ -371,7 +371,7 @@ class GreedyProtocol(Protocol):
 
     def __init__(self, config, num_iterations=1):
         super(GreedyProtocol, self).__init__(config)
-        # Set reward to unlimited in order to make locally optimal choices.
+        # Set reward to unlimited in order so that cars can always report truthfully.
         self.unlimited_reward = True
         self.num_iterations = num_iterations
 
@@ -433,10 +433,10 @@ class GeneralizedGreedyProtocol8(GreedyProtocol):
         super(GeneralizedGreedyProtocol8, self).__init__(config, num_iterations=self.num_iterations)
 
     def __str__(self):
-        return 'greedy_externality_%d' % self.num_iterations
+        return 'generalized_greedy_%d' % self.num_iterations
 
 
-class GreedyRandomProtocol(GreedyProtocol):
+class RandomGreedyProtocol(GreedyProtocol):
     """
     This protocol implements GreedyProtocol 50% of the time and RandomProtocol 50% of the time.
     """
@@ -455,10 +455,87 @@ class GreedyRandomProtocol(GreedyProtocol):
 
         if random.random() < optimal_probability:
             # Pick an optimal choice.
-            return super(GreedyRandomProtocol, self).getWinPosition(position_0, actions_0, position_1, actions_1,
+            return super(RandomGreedyProtocol, self).getWinPosition(position_0, actions_0, position_1, actions_1,
                                                                      game_state)
 
         # Otherwise, arbitrarily pick win and lose positions.
         if random.choice([True, False]):
             return position_0
         return position_1
+
+    def __str__(self):
+        return 'random_greedy'
+
+
+class MonteCarloGreedy(GreedyProtocol):
+    def __init__(self, config, num_iterations=1):
+        super(GreedyProtocol, self).__init__(config)
+        # Set reward to unlimited in order so that cars can always report truthfully.
+        self.unlimited_reward = True
+        self.num_iterations = num_iterations
+
+    def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
+        if position_1 is None:
+            # There is no conflict.
+            return position_0
+
+        # If only one position has cars, pick that position.
+        if len(actions_0) > 0 and len(actions_1) == 0:
+            return position_0
+        elif len(actions_1) > 0 and len(actions_0) == 0:
+            return position_1
+
+        num_trials = 3
+        distance = 3
+        max_iterations = 100
+
+        def simulate(game_state, distance, max_iterations, position):
+            # Create a copy of the game that will be simulated using RandomProtocol.
+            intersection_position = util.getNextPosition(position, 1)
+
+            # Keep a pointer to the main simulation's protocol.
+            old_protocol = game_state.config.protocol
+            game_state.config.protocol = RandomProtocol(game_state.config)
+
+            # Compute cost of a simulation.
+            game = game_state.getCopy(intersection_position, distance, centered=True)
+            cost = getSimulationCost(game, max_iterations, position)
+
+            # Set game_state's protocol back to the original protocol.
+            game_state.config.protocol = old_protocol
+
+            return cost
+
+        def getSimulationCost(game, max_iterations, position):
+            if game.isEnd():
+                return game.getCompetitiveRatio()
+
+            for curr_iteration in xrange(max_iterations):
+                # Simulate one iteration of the game. If this is the first simulated round, let position win.
+                if curr_iteration == 0:
+                    game.updateState(automatic_win_position=position)
+                else:
+                    game.updateState()
+
+                if game.isEnd():
+                    return game.getCompetitiveRatio()
+
+            return game.getCompetitiveRatio()
+
+        position_0_cost = sum([simulate(game_state, distance, max_iterations, position_0)
+                               for _ in xrange(num_trials)]) / num_trials
+        position_1_cost = sum([simulate(game_state, distance, max_iterations, position_1)
+                               for _ in xrange(num_trials)]) / num_trials
+
+        # Winner is the position with a lower cost. Ties are broken randomly.
+        if position_0_cost < position_1_cost or \
+                (position_0_cost == position_1_cost and random.choice([True, False])):
+            return position_0
+        else:
+            return position_1
+
+    def updateCarReward(self, car_id, position, win_position, car_action, position_0, actions_0, position_1, actions_1):
+        return 0
+
+    def __str__(self):
+        return 'monte_carlo'

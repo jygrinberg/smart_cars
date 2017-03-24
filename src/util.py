@@ -29,8 +29,10 @@ def getProtocolClass(protocol_class_name):
         return GeneralizedGreedyProtocol6
     if protocol_class_name == 'generalized_greedy_8':
         return GeneralizedGreedyProtocol8
-    if protocol_class_name == 'greedy_random':
-        return GreedyRandomProtocol
+    if protocol_class_name == 'random_greedy':
+        return RandomGreedyProtocol
+    if protocol_class_name == 'monte_carlo_greedy':
+        return MonteCarloGreedy
     raise Exception('Unrecognized protocol class name: %s' % protocol_class_name)
 
 def getCarClass(car_class_name):
@@ -153,7 +155,7 @@ def getCompetingPosition(position):
             return intersection_x + 1, intersection_y
 
 
-def getPositionsWithinDistance(position, distance):
+def getPositionsWithinDistance(position, distance, centered):
     positions = set()
     for curr_distance in xrange(distance + 1):
         curr_position = util.getNextPosition(position, curr_distance)

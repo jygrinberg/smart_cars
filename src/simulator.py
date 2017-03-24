@@ -176,6 +176,8 @@ class GameState:
         self.num_cars_travelling = len(cars)
 
     def getCompetitiveRatio(self):
+        if self.optimal_cost == 0:
+            return float('inf')
         return self.total_cost / self.optimal_cost
 
     def updateState(self, automatic_win_position=None, automatic_lose_position=None):
@@ -313,39 +315,18 @@ class GameState:
         """
         return self.config.high_cost * car.priority + 1 * (1 - car.priority)
 
-    def getCopy(self, position, num_iterations=2):
-        if util.isIntersection(position):
-            raise Exception('Position passed into GameState.getCopy() cannot be an intersection.')
-
-        positions = util.getPositionsWithinDistance(position, num_iterations)
+    def getCopy(self, position, num_iterations=2, centered=False):
         cars = []
-        for position in positions:
-            if util.isInBounds(position, self.board):
-                cars += self._getCarCopies(position)
 
-        # Get copies of all the cars relevant for a two iteration simulation.
-        # cars = []
-        #
-        # cars += self._getCarCopies(position, 1)
-        #
-        # next_1_position = util.getNextPosition(position[0], position[1], 1)
-        # cars += self._getCarCopies(next_1_position)
-        #
-        # next_2_position = util.getNextPosition(position[0], position[1], 2)
-        # cars += self._getCarCopies(next_2_position, 3)
-        #
-        # competing_position = util.getCompetingPosition(next_2_position[0], next_2_position[1])
-        # cars += self._getCarCopies(competing_position)
-        #
-        # competing_1_position = util.getNextPosition(competing_position[0], competing_position[1], -1)
-        # cars += self._getCarCopies(competing_1_position)
-        #
-        # competing_2_position = util.getNextPosition(competing_position[0], competing_position[1], -2)
-        # cars += self._getCarCopies(competing_2_position, 1)
-        #
-        # competing_2_competing_position = util.getCompetingPosition(competing_2_position[0],
-        #                                                                 competing_2_position[1])
-        # cars += self._getCarCopies(competing_2_competing_position, 1)
+        if centered:
+            for dx in xrange(max(-num_iterations, 0), min(num_iterations + 1, len(self.board) - 1)):
+                for dy in xrange(max(0, -num_iterations), min(num_iterations + 1, len(self.board[0]) - 1)):
+                    cars += self._getCarCopies((position[0] + dx, position[1] + dy))
+        else:
+            positions = util.getPositionsWithinDistance(position, num_iterations, centered)
+            for position in positions:
+                if util.isInBounds(position, self.board):
+                    cars += self._getCarCopies(position)
 
         return GameState(self.config, 0, cars, init_new_trips=False)
 
