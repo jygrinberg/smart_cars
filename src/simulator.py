@@ -178,7 +178,7 @@ class GameState:
     def getCompetitiveRatio(self):
         return self.total_cost / self.optimal_cost
 
-    def updateState(self, automatic_win_position=None):
+    def updateState(self, automatic_win_position=None, automatic_lose_position=None):
         """
         Runs one iteration of the simulation. Updates self.board and self.cost_board to reflect the new state of the
         simulation. Also updates self.win_next_positions with a list of (win_position, next_position) tuples.
@@ -259,6 +259,14 @@ class GameState:
                     win_position = position_0
                 else:
                     win_position = position_1
+            if automatic_lose_position and \
+                    (automatic_lose_position == position_0 or automatic_lose_position == position_1):
+                # An automatic_lose_position was provided, and one of the positions in this conflict is
+                # automatic_lose_position.
+                if automatic_lose_position == position_0:
+                    win_position = position_0
+                else:
+                    win_position = position_1
             else:
                 win_position = self.config.protocol.getWinPosition(position_0, actions_list[0], position_1,
                                                                    actions_list[1], self)
@@ -306,31 +314,38 @@ class GameState:
         return self.config.high_cost * car.priority + 1 * (1 - car.priority)
 
     def getCopy(self, position, num_iterations=2):
-        if num_iterations != 2:
-            raise Exception('Have not yet implemented copying a GameState for > 2 iterations.')
+        if util.isIntersection(position):
+            raise Exception('Position passed into GameState.getCopy() cannot be an intersection.')
+
+        positions = util.getPositionsWithinDistance(position, num_iterations)
+        cars = []
+        for position in positions:
+            if util.isInBounds(position, self.board):
+                cars += self._getCarCopies(position)
 
         # Get copies of all the cars relevant for a two iteration simulation.
-        cars = []
-        cars += self._getCarCopies(position, 1)
-
-        next_1_position = util.getNextIntersection(position[0], position[1], 1)
-        cars += self._getCarCopies(next_1_position)
-
-        next_2_position = util.getNextIntersection(position[0], position[1], 2)
-        cars += self._getCarCopies(next_2_position, 3)
-
-        competing_position = util.getCompetingQueuePosition(next_2_position[0], next_2_position[1])
-        cars += self._getCarCopies(competing_position)
-
-        competing_1_position = util.getNextIntersection(competing_position[0], competing_position[1], -1)
-        cars += self._getCarCopies(competing_1_position)
-
-        competing_2_position = util.getNextIntersection(competing_position[0], competing_position[1], -2)
-        cars += self._getCarCopies(competing_2_position, 1)
-
-        competing_2_competing_position = util.getCompetingQueuePosition(competing_2_position[0],
-                                                                        competing_2_position[1])
-        cars += self._getCarCopies(competing_2_competing_position, 1)
+        # cars = []
+        #
+        # cars += self._getCarCopies(position, 1)
+        #
+        # next_1_position = util.getNextPosition(position[0], position[1], 1)
+        # cars += self._getCarCopies(next_1_position)
+        #
+        # next_2_position = util.getNextPosition(position[0], position[1], 2)
+        # cars += self._getCarCopies(next_2_position, 3)
+        #
+        # competing_position = util.getCompetingPosition(next_2_position[0], next_2_position[1])
+        # cars += self._getCarCopies(competing_position)
+        #
+        # competing_1_position = util.getNextPosition(competing_position[0], competing_position[1], -1)
+        # cars += self._getCarCopies(competing_1_position)
+        #
+        # competing_2_position = util.getNextPosition(competing_position[0], competing_position[1], -2)
+        # cars += self._getCarCopies(competing_2_position, 1)
+        #
+        # competing_2_competing_position = util.getCompetingPosition(competing_2_position[0],
+        #                                                                 competing_2_position[1])
+        # cars += self._getCarCopies(competing_2_competing_position, 1)
 
         return GameState(self.config, 0, cars, init_new_trips=False)
 
@@ -341,7 +356,7 @@ class GameState:
         :param iteration_id: Iteration ID number.
         """
         if util.VERBOSE >= 2:
-            print('State: round=%d\titeration=%d' % (round_id, iteration_id))
+            print('State: round=%d\iteration=%d' % (round_id, iteration_id))
             print('  ', end='')
             for x in xrange(self.config.width):
                 if x % 4 == 3:
@@ -381,7 +396,7 @@ class GameState:
 
 
     def _getCarCopies(self, position, max_num_cars=None):
-        if not util.isInBounds(position[0], position[1], self.board):
+        if not util.isInBounds(position, self.board):
             return []
 
         cars = []

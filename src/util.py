@@ -77,7 +77,8 @@ def highCostToFixedCost(high_cost):
 # Street ids 1, 5, 9, etc. go down/right.
 # Street ids 3, 7, 11, etc. go up/left.
 
-def getPositionDirection(x, y):
+def getPositionDirection(position):
+    x, y = position
     if x % 4 == 1:
         # Car is moving down.
         return 0, 1
@@ -91,29 +92,38 @@ def getPositionDirection(x, y):
         # Car is moving left.
         return -1, 0
 
-def getUpcomingQueue(x, y, num_intersections=1):
-    dx, dy = getPositionDirection(x, y)
+def getUpcomingQueue(position, num_intersections=1):
+    x, y = position
+    dx, dy = getPositionDirection(position)
     return x + 2 * dx * num_intersections, y + 2 * dy * num_intersections
 
-def getNextIntersection(x, y, num_intersections=1):
-    dx, dy = getPositionDirection(x, y)
+def getNextPosition(position, num_intersections=1, reverse=False):
+    dx, dy = getPositionDirection(position)
+    
+    if reverse:
+        num_intersections *= -1
+        
+    x, y = position
     return x + dx * num_intersections, y + dy * num_intersections
 
-def isInBounds(x, y, board):
-    return 0 <= x < len(board) and 0 <= y < len(board[0])
+def isInBounds(position, board):
+    return 0 <= position[0] < len(board) and 0 <= position[1] < len(board[0])
 
-def isDestination(x, y, board):
+def isDestination(position, board):
+    x, y = position
     if x == 0 or y == 0 or x == len(board) - 1 or y == len(board[0]):
         return True
     return False
 
-def isIntersection(x, y, board):
+def isIntersection(position):
+    x, y = position
     if x % 2 == 1 and y % 2 == 1:
         return True
     return False
 
-def getCompetingQueuePosition(x, y):
-    dx, dy = getPositionDirection(x, y)
+def getCompetingPosition(position):
+    x, y = position
+    dx, dy = getPositionDirection(position)
 
     intersection_x = x + dx
     intersection_y = y + dy
@@ -134,6 +144,35 @@ def getCompetingQueuePosition(x, y):
             # Intersecting road is moving left.
             return intersection_x + 1, intersection_y
 
+
+def getPositionsWithinDistance(position, distance):
+    positions = set()
+    for curr_distance in xrange(distance + 1):
+        curr_position = util.getNextPosition(position, curr_distance)
+        positions.add(curr_position)
+        if not util.isIntersection(curr_position):
+            competing_position = util.getCompetingPosition(curr_position)
+            addPositionsWithinDistanceRec(competing_position, curr_distance, positions)
+    return positions
+
+def addPositionsWithinDistanceRec(position, distance, positions):
+    if position in positions or position[0] is None or position[1] is None:
+        return
+
+    positions.add(position)
+    competing_position = util.getCompetingPosition(position)
+    positions.add(competing_position)
+
+    if distance == 0:
+        return
+
+    prev_intersection = util.getNextPosition(position, 1, reverse=True)
+    positions.add(prev_intersection)
+    prev_position = util.getNextPosition(position, 2, reverse=True)
+
+    addPositionsWithinDistanceRec(prev_position, distance - 2, positions)
+    addPositionsWithinDistanceRec(competing_position, distance - 2, positions)
+
 def getQueueCost(queue, high_cost):
     # if isDestination(x, y, board):
     #     raise Exception('Attempting to get the queue cost for a destination position.')
@@ -141,6 +180,9 @@ def getQueueCost(queue, high_cost):
     # if not isInBounds(x, y, board):
     #     raise Exception('Attempting to get the queue cost for an out-of-bounds position: (%d, %d)' % (x, y))
     return sum([high_cost * car.priority + 1 * (1 - car.priority) for car in queue])
+
+def numTravellingCars(queue):
+    return sum([1 for car in queue if not car.hasArrived()])
 
 def getCarCost(car, high_cost):
     """
