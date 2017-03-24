@@ -108,7 +108,7 @@ class Protocol(object):
                 sum += self.initial_reward
         return sum
 
-    def _getOptimalWinPosition(self, position_0, actions_0, position_1, actions_1, game_state, num_iterations=1):
+    def _getOptimalWinPosition(self, position_0, actions_0, position_1, actions_1, game_state, num_iterations=None):
         """
         :param num_iterations: Number of iterations to simulate when computing optimal win position.
         """
@@ -118,7 +118,7 @@ class Protocol(object):
 
         win_position = position_0
 
-        if num_iterations == 1:
+        if num_iterations is None:
             # Total bid is total cost of the queue assuming truthful actions.
             position_0_bids = sum(actions_0) * self.config.high_cost + len(actions_0) - sum(actions_0)
             position_1_bids = sum(actions_1) * self.config.high_cost + len(actions_1) - sum(actions_1)
@@ -187,9 +187,13 @@ class Protocol(object):
                         if util.isInBounds(competing_position, game.board) and \
                                         len(game.board[competing_position[0]][competing_position[1]]) > 0:
                             # Car is in a conflict with a non-empty queue.
-                            cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
-                                                      game.config.high_cost)
+
+                            # NOTE: Uncommenting the following addition to cost improves results, but does not have an
+                            # intuitive theoretical justification.
+                            # cost += util.getQueueCost(game.board[competing_position[0]][competing_position[1]],
+                            #                           game.config.high_cost)
                             # continue
+
                             externality = getExternality(game, num_iterations - curr_iteration - 1, my_car.position)
                             competing_externality = getExternality(game, num_iterations - curr_iteration - 1,
                                                                    competing_position)
@@ -251,6 +255,7 @@ class RandomProtocol(Protocol):
     def __str__(self):
         return 'random'
 
+
 class VCGProtocol(Protocol):
     """
     This is a protocol making use of a VCG auction.
@@ -302,77 +307,12 @@ class VCGProtocol(Protocol):
         externality = utility_without_car - utility_with_car
 
         reward = -externality
-        # reward = 0.0
-        # if self.voting_externality and self.fixed_cost == 1.0:
-        #     # Compute externality as the social welfare to everyone else if a given agent were present but voted
-        #     # differently.
-        #     if bid_difference == 0:
-        #         # Conflict was a tie.
-        #         if car_action == 1:
-        #             # Car would have lost had it bid 0.
-        #             reward = -1.0
-        #         elif car_action == 0:
-        #             # Car would have won had it bid non-zero.
-        #             reward = 1.0
-        #     elif bid_difference == 1:
-        #         # One side won by one vote.
-        #         if position == win_position and car_action == 1:
-        #             # Car won, but it would have tied had it bid 0.
-        #             reward = -1.0
-        #         elif position != win_position and car_action == 0:
-        #             # Car lost, but it would have tied had it bid 1.
-        #             reward = 1.0
-        # elif self.voting_externality:
-        #     # Compute externality as the social welfare to everyone else if a given agent were present but voted
-        #     # differently.
-        #     if bid_difference == 0:
-        #         # Conflict was a tie.
-        #         if car_action == 1:
-        #             # Car would have lost had it bid 0.
-        #             reward = -0.5
-        #         elif car_action == 0:
-        #             # Car would have won had it bid 1.
-        #             reward = 0.5
-        #     elif position == win_position:
-        #         # Car was in the winning position.
-        #         if bid_difference < car_action:
-        #             # Car would have lost had it bid 0.
-        #             reward = -1.0
-        #         elif bid_difference == car_action:
-        #             # Car would have tied had it bid 0.
-        #             reward = -0.5
-        #     else:
-        #         # Car was in the losing position.
-        #         if bid_difference < car_action:
-        #             # Car would have won had it bid 1.
-        #             reward = 1.0
-        #         elif bid_difference == car_action:
-        #             # Car would have tied had it bid 1.
-        #             reward = 0.5
-        # else:
-        #     # Set to False to compute externality as the social welfare to everyone had a given agent not been present.
-        #     if position == win_position and car_action == 1:
-        #         # Car in winning position and car's action is 1.
-        #         if bid_difference == 0:
-        #             # Car would have lost had it not been present.
-        #             reward = -1.0
-        #         elif bid_difference == 1 + self.fixed_cost:
-        #             # Car would have tied had it acted differently.
-        #             reward = -0.5
-        #     elif position != win_position and car_action == 0:
-        #         # Car in losing position and car's action is 0.
-        #         if bid_difference == 0:
-        #             # Car would have won had it acted differently.
-        #             reward = 1.0
-        #         elif bid_difference == 1:
-        #             # Car would have tied had it acted differently.
-        #             reward = 0.5
-
         self.rewards[car_id] += reward
         return reward
 
     def __str__(self):
         return 'vcg'
+
 
 class ButtonProtocol(Protocol):
     """
@@ -424,13 +364,13 @@ class ButtonProtocol(Protocol):
         return 'button'
 
 
-class OptimalProtocol(Protocol):
+class GreedyProtocol(Protocol):
     """
     This is an optimal greedy protocol assuming truthful cars.
     """
 
     def __init__(self, config, num_iterations=1):
-        super(OptimalProtocol, self).__init__(config)
+        super(GreedyProtocol, self).__init__(config)
         # Set reward to unlimited in order to make locally optimal choices.
         self.unlimited_reward = True
         self.num_iterations = num_iterations
@@ -446,7 +386,7 @@ class OptimalProtocol(Protocol):
         return 'greedy'
 
 
-class GeneralizedGreedyProtocol0(OptimalProtocol):
+class GeneralizedGreedyProtocol0(GreedyProtocol):
     num_iterations = 0
     def __init__(self, config):
         self.num_iterations = 0
@@ -456,7 +396,7 @@ class GeneralizedGreedyProtocol0(OptimalProtocol):
         return 'greedy_externality_%d' % self.num_iterations
 
 
-class GeneralizedGreedyProtocol2(OptimalProtocol):
+class GeneralizedGreedyProtocol2(GreedyProtocol):
     num_iterations = 0
     def __init__(self, config):
         self.num_iterations = 2
@@ -466,7 +406,7 @@ class GeneralizedGreedyProtocol2(OptimalProtocol):
         return 'greedy_externality_%d' % self.num_iterations
 
 
-class GeneralizedGreedyProtocol4(OptimalProtocol):
+class GeneralizedGreedyProtocol4(GreedyProtocol):
     num_iterations = 0
     def __init__(self, config):
         self.num_iterations = 4
@@ -476,7 +416,7 @@ class GeneralizedGreedyProtocol4(OptimalProtocol):
         return 'greedy_externality_%d' % self.num_iterations
 
 
-class GeneralizedGreedyProtocol6(OptimalProtocol):
+class GeneralizedGreedyProtocol6(GreedyProtocol):
     num_iterations = 0
     def __init__(self, config):
         self.num_iterations = 6
@@ -486,7 +426,7 @@ class GeneralizedGreedyProtocol6(OptimalProtocol):
         return 'greedy_externality_%d' % self.num_iterations
 
 
-class GeneralizedGreedyProtocol8(OptimalProtocol):
+class GeneralizedGreedyProtocol8(GreedyProtocol):
     num_iterations = 0
     def __init__(self, config):
         self.num_iterations = 8
@@ -496,9 +436,9 @@ class GeneralizedGreedyProtocol8(OptimalProtocol):
         return 'greedy_externality_%d' % self.num_iterations
 
 
-class OptimalRandomProtocol(OptimalProtocol):
+class GreedyRandomProtocol(GreedyProtocol):
     """
-    This protocol implements OptimalProtocol 50% of the time and RandomProtocol 50% of the time.
+    This protocol implements GreedyProtocol 50% of the time and RandomProtocol 50% of the time.
     """
 
     def getWinPosition(self, position_0, actions_0, position_1, actions_1, game_state):
@@ -515,7 +455,7 @@ class OptimalRandomProtocol(OptimalProtocol):
 
         if random.random() < optimal_probability:
             # Pick an optimal choice.
-            return super(OptimalRandomProtocol, self).getWinPosition(position_0, actions_0, position_1, actions_1,
+            return super(GreedyRandomProtocol, self).getWinPosition(position_0, actions_0, position_1, actions_1,
                                                                      game_state)
 
         # Otherwise, arbitrarily pick win and lose positions.

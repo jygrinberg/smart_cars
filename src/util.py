@@ -17,8 +17,8 @@ def getProtocolClass(protocol_class_name):
         return VCGProtocol
     if protocol_class_name == 'button':
         return ButtonProtocol
-    if protocol_class_name == 'optimal':
-        return OptimalProtocol
+    if protocol_class_name == 'greedy':
+        return GreedyProtocol
     if protocol_class_name == 'generalized_greedy_0':
         return GeneralizedGreedyProtocol0
     if protocol_class_name == 'generalized_greedy_2':
@@ -29,8 +29,8 @@ def getProtocolClass(protocol_class_name):
         return GeneralizedGreedyProtocol6
     if protocol_class_name == 'generalized_greedy_8':
         return GeneralizedGreedyProtocol8
-    if protocol_class_name == 'optimal_random':
-        return OptimalRandomProtocol
+    if protocol_class_name == 'greedy_random':
+        return GreedyRandomProtocol
     raise Exception('Unrecognized protocol class name: %s' % protocol_class_name)
 
 def getCarClass(car_class_name):

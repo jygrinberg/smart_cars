@@ -17,7 +17,7 @@ class Plotter:
             self.variable_step = int(self.variable_step)
 
     def runAndPlot(self, options):
-        context_metrics = {}
+        context_metric_values = []
         variable_values = [self.variable_min + (i * self.variable_step)
                            for i in xrange(1 + int((self.variable_max - self.variable_min) / self.variable_step))]
 
@@ -41,20 +41,20 @@ class Plotter:
         elif options.contexts == 'b_o_r':
             contexts = [{'protocol': 'button', 'car': 'truthful',
                          'label': 'Button (truthful cars)'},
-                        {'protocol': 'optimal', 'car': 'truthful',
-                         'label': 'Optimal Greedy'},
+                        {'protocol': 'greedy', 'car': 'truthful',
+                         'label': 'Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'o_r':
-            contexts = [{'protocol': 'optimal', 'car': 'truthful',
-                         'label': 'Optimal Greedy'},
+            contexts = [{'protocol': 'greedy', 'car': 'truthful',
+                         'label': 'Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'g_o_r':
             contexts = [{'protocol': 'generalized_greedy_2', 'car': 'truthful',
                          'label': 'Greedy (Externality=2)'},
-                        {'protocol': 'optimal', 'car': 'truthful',
-                         'label': 'Optimal Greedy'},
+                        {'protocol': 'greedy', 'car': 'truthful',
+                         'label': 'Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'gg_r':
@@ -71,10 +71,10 @@ class Plotter:
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         elif options.contexts == 'or_o_r':
-            contexts = [{'protocol': 'optimal_random', 'car': 'truthful',
-                         'label': '50% Optimal Greedy 50% Random'},
-                        {'protocol': 'optimal', 'car': 'truthful',
-                         'label': 'Optimal Greedy'},
+            contexts = [{'protocol': 'greedy_random', 'car': 'truthful',
+                         'label': '50% Greedy 50% Random'},
+                        {'protocol': 'greedy', 'car': 'truthful',
+                         'label': 'Greedy'},
                         {'protocol': 'random', 'car': 'truthful',
                          'label': 'Random'}]
         else:
@@ -122,7 +122,7 @@ class Plotter:
                 
                 metric_values.append(metric_value)
                 
-            context_metrics[context['label']] = metric_values
+            context_metric_values.append((context['label'], metric_values))
 
         # Compute the filename given all the parameters.
         filename = '%s_%s_vs_%s_%.1f_to_%.1f_%d' % \
@@ -138,14 +138,14 @@ class Plotter:
             filename += '_' + str(high_cost)
         filename += '.png'
 
-        self._plotVariableVsMetric(variable_values, context_metrics, filename)
+        self._plotVariableVsMetric(variable_values, context_metric_values, filename)
     
     def _plotVariableVsMetric(self, variable_values, metric_values, filename):
         import matplotlib.pyplot as plt
 
         # Plot values for each context.
         plt.clf()
-        for label, metric_value in metric_values.iteritems():
+        for label, metric_value in metric_values:
             plt.plot(variable_values, metric_value, label=label)
 
         # Get a human readable string for the variable name.
@@ -177,7 +177,7 @@ class Plotter:
         plt.xlabel(variable_name_pretty)
         plt.ylabel(metric_name_pretty)
         plt.grid()
-        plt.legend()
+        plt.legend(loc='upper left')
         plt.xlim(xmin=variable_values[0], xmax=variable_values[-1])
         plt.savefig(util.getOutfilePathname(filename))
 
